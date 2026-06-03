@@ -5,20 +5,63 @@ title: Getting Started
 
 ## Installation
 
-1. Build or download `SinceDungeon.jar`.
-2. Place it in the server `plugins/` folder.
+Requirements:
+
+- Paper server compatible with the plugin build target.
+- Java 21 or newer.
+- PlaceholderAPI is optional but recommended for conditions and placeholders.
+- MythicMobs is optional for Mythic actions.
+- MMOItems is optional for MMOItems rewards/items.
+- SinceDungeon Premium requires SinceDungeon Core.
+- Premium schematic mode requires WorldEdit or FastAsyncWorldEdit.
+- Premium hologram leaderboards use native TextDisplay entities and do not require DecentHolograms.
+
+Core installation:
+
+1. Stop the server.
+2. Place `SinceDungeon.jar` in the server `plugins/` folder.
 3. Start the server once to generate plugin files.
 4. Stop the server before editing large YAML files.
-5. Put template worlds in the configured template folder.
+5. Edit `plugins/SinceDungeon/config.yml`.
 6. Create dungeon files inside `plugins/SinceDungeon/dungeons/`.
 7. Start the server and run `/dungeon join <dungeon_id>`.
 
 For Premium features, also place `SinceDungeon-PremiumAddon.jar` in `plugins/`. Premium requires Core to be installed
 and enabled.
 
+Premium installation:
+
+1. Install SinceDungeon Core first.
+2. Place `SinceDungeon-PremiumAddon.jar` in `plugins/`.
+3. Start the server once.
+4. Edit `plugins/SinceDungeon-PremiumAddon/config.yml`.
+5. If using schematic mode, place files in `plugins/SinceDungeon-PremiumAddon/schematics/`.
+
 On Folia, use Premium schematic shared-world mode. Core's default full-world cloning relies on runtime world creation,
 which Folia does not support. Core template-world dungeons are validated during load, editor save, and join so this
 unsupported setup is blocked before runtime.
+
+## Generated Files
+
+Core generates:
+
+```text
+plugins/SinceDungeon/
+  config.yml
+  data.db
+  dungeons/
+  languages/
+  settings/
+```
+
+Premium generates:
+
+```text
+plugins/SinceDungeon-PremiumAddon/
+  config.yml
+  messages.yml
+  schematics/
+```
 
 ## Build From Source
 
@@ -85,6 +128,35 @@ stages:
         target: "0,64,0"
         radius: 3.0
 ```
+
+## Premium Schematic First Setup
+
+Premium schematic mode uses the dungeon `template-world` value as the schematic file base name.
+
+Example:
+
+```yaml
+template-world: "ForgottenCrypt_Template"
+```
+
+The Premium plugin looks for:
+
+```text
+plugins/SinceDungeon-PremiumAddon/schematics/ForgottenCrypt_Template.schem
+plugins/SinceDungeon-PremiumAddon/schematics/ForgottenCrypt_Template.schematic
+```
+
+Enable schematic mode in Premium config:
+
+```yaml
+instancing:
+  mode: "SCHEMATIC"
+```
+
+If `shared-world.enabled` is true, all schematic runs are pasted into isolated regions inside one shared void world. On
+Folia, that shared world must already be loaded before SinceDungeon Premium enables.
+
+For the complete per-dungeon workflow, see [Schematic and Folia Setup](folia-schematic.md).
 
 ## File Locations
 

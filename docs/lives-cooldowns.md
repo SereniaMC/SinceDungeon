@@ -8,6 +8,16 @@ SinceDungeon includes two progression gates:
 - **Lives** control entry, death penalties, revives, and regeneration.
 - **Cooldowns** control how soon players can rerun a dungeon.
 
+Lives and cooldowns are stored in the configured database and cached in memory.
+
+Per-player life fields:
+
+- Current lives
+- Max lives
+- Custom regeneration amount
+- Custom regeneration interval
+- Last regeneration timestamp
+
 ## Lives Configuration
 
 ```yaml
@@ -135,6 +145,14 @@ items:
   cooldown_reset: { }
   cooldown_reduce: { }
 ```
+
+Cooldown tools:
+
+- Reset one dungeon cooldown.
+- Reset all cooldowns for a player.
+- Reduce all cooldowns by seconds.
+- Give cooldown reset item.
+- Give cooldown reduce item.
 
 ## Cooldown Admin Commands
 

@@ -20,6 +20,23 @@ Common optional fields loaded by the action system include:
 - `time_limit`: seconds before the action is penalized or failed, where supported.
 - `time_penalty`: lives or time penalty value used by supported actions.
 - `start_message`: one string or list of strings shown when the action starts.
+- `notifications`: per-action message toggles such as `custom_start`, `init`, `progress`, `complete`, and `warning`.
+
+Example:
+
+```yaml
+type: "SPAWN_WAVE"
+time_limit: -1
+time_penalty: 1
+start_message:
+  - "<yellow>Message"
+notifications:
+  custom_start: true
+  init: true
+  progress: true
+  complete: true
+  warning: true
+```
 
 ## Core Actions
 
@@ -59,7 +76,7 @@ attributes:
 equipment:
   - "HAND:IRON_SWORD"
 custom_drops:
-  - "DIAMOND:1"
+  - "DIAMOND:1:25"
 locations:
   - "15,64,20"
 ```

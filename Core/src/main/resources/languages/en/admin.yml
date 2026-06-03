@@ -50,6 +50,7 @@ admin:
     startup_paper_modern: "Running natively for Paper 1.21+ | NMS Version: <nms>"
     startup_paper_legacy: "Running natively for Paper 26.1+ | Version: <version>"
     startup_ready: "[Startup] SinceDungeon finished loading data."
+    startup_slow: "[Startup] SinceDungeon data is still loading after <seconds>s. The plugin will stay enabled and players will be blocked from joining until loading finishes."
     startup_failed: "[Startup] SinceDungeon startup failed: <error>"
     papi_registered: "Successfully registered PlaceholderAPI integration for SinceDungeon."
     papi_missing: "PlaceholderAPI not found. Custom placeholders will be disabled."

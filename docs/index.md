@@ -7,31 +7,26 @@ SinceDungeon is a Paper 1.21 dungeon plugin for instanced, configurable dungeon 
 instancing, staged objectives, built-in party support, lives and cooldown systems, reward chests, leaderboards,
 PlaceholderAPI support, an in-game editor, and an extensible Java API.
 
-The project is split into two plugins:
+## Plugin Packages
 
 - **SinceDungeon Core**: dungeon engine, commands, editor, actions, rewards, top boards, lives, cooldowns, database,
   Redis/cross-server support, and developer API.
 - **SinceDungeon Premium Addon**: advanced dungeon actions, roulette rewards, hologram drops, hologram leaderboards,
   Mythic+ affixes, Discord webhooks, native TextDisplay holograms, and extra MythicMobs item integration.
 
-## Quick Links
+## Read In This Order
 
-- [Getting Started](getting-started.md)
-- [Configuration](configuration.md)
-- [Dungeon Files](dungeon-files.md)
-- [Actions](actions.md)
-- [Rewards](rewards.md)
-- [Commands](commands.md)
-- [Leaderboards](leaderboards.md)
-- [Lives and Cooldowns](lives-cooldowns.md)
-- [Editor](editor.md)
-- [Languages and Customization](languages-customization.md)
-- [Permissions](permissions.md)
-- [Integrations](integrations.md)
-- [Premium Addon](premium.md)
-- [Folia and Schematic Instancing](folia-schematic.md)
-- [Developer API](developer-api.md)
-- [Troubleshooting](troubleshooting.md)
+1. [Getting Started](getting-started.md): install the plugin and create a first dungeon.
+2. [Configuration](configuration.md): configure global Core settings.
+3. [Dungeon Files](dungeon-files.md): understand the YAML file structure.
+4. [Actions](actions.md): build stages and objectives.
+5. [Rewards](rewards.md): configure completion loot.
+6. [Editor](editor.md): use the in-game editor for faster setup.
+7. [Example Dungeon](example-dungeon.md): copy a compact complete YAML example.
+8. [Schematic Setup](folia-schematic.md): use Premium schematic instancing, including Folia.
+9. [Troubleshooting](troubleshooting.md): debug common setup mistakes.
+
+The left navigation contains every available documentation page.
 
 ## Requirements
 
@@ -62,13 +57,15 @@ The project is split into two plugins:
 On Folia, Core template-world copy mode is blocked before a run starts because Folia cannot create Bukkit worlds at
 runtime. Use Premium `SCHEMATIC` shared-world mode with a preloaded shared world.
 
-## Suggested Wiki Order
+## Common Tasks
 
-1. Install the Core plugin and optional dependencies.
-2. Configure global settings in `config.yml`.
-3. Create one template world folder.
-4. Add a dungeon YAML file under `dungeons/`.
-5. Test with `/dungeon join <id>`.
-6. Use `/dungeon editor` for faster in-game editing.
-7. Add rewards, conditions, lives, cooldowns, and leaderboards.
-8. Install Premium if you need advanced actions, roulette rewards, affixes, holograms, or webhooks.
+| Task | Page |
+|------|------|
+| Install Core and Premium | [Getting Started](getting-started.md) |
+| Set command aliases, database, worlds, and lives | [Configuration](configuration.md) |
+| Create a dungeon YAML file | [Dungeon Files](dungeon-files.md) |
+| Add combat, doors, chests, bosses, and traps | [Actions](actions.md) |
+| Copy a complete dungeon YAML example | [Example Dungeon](example-dungeon.md) |
+| Create a schematic dungeon correctly | [Schematic Setup](folia-schematic.md) |
+| Configure roulette, affixes, webhooks, and holograms | [Premium Addon](premium.md) |
+| Use API events or custom providers | [Developer API](developer-api.md) |

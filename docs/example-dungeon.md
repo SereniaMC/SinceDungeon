@@ -1,12 +1,17 @@
-# Example Dungeon
+---
+layout: page
+title: Example Dungeon
+description: Compact complete dungeon YAML showing settings, conditions, rewards, stages, keys, doors, waves, and a boss.
+---
 
-This is a compact example showing the main systems together.
+This compact example shows the main systems together.
 
 ```yaml
 template-world: "ForgottenCrypt_Template"
 public: true
 
 settings:
+  start-location: "0,65,0"
   max-players: 6
   required-lives-to-join: 1
   lives-deducted-per-death: 1
@@ -131,4 +136,11 @@ For Premium schematic mode, place:
 
 ```text
 plugins/SinceDungeon-PremiumAddon/schematics/ForgottenCrypt_Template.schem
+```
+
+Then test:
+
+```text
+/sincedungeon reload
+/dungeon join forgotten_crypt
 ```

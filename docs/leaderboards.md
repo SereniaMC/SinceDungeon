@@ -6,6 +6,15 @@ title: Leaderboards
 SinceDungeon stores leaderboard data in the configured database and displays it through GUIs, PlaceholderAPI, and
 Premium holograms.
 
+Database tables:
+
+- `top_fastest`
+- `party_top_fastest`
+- `top_kills`
+- `top_clears`
+
+Players with `SinceDungeon.top.ignore` are ignored.
+
 ## Categories
 
 | Category             | Meaning                                      |

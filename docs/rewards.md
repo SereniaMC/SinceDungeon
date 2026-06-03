@@ -6,6 +6,13 @@ title: Rewards
 Dungeon completion grants reward chests based on completion time. The default Core system opens a reward GUI; Premium
 can replace this with roulette-style spins.
 
+Reward flow:
+
+1. The plugin calculates completion time.
+2. It checks solo or party tier tables.
+3. It gives reward chest attempts.
+4. Each reward chest rolls entries from `rewards.pool`.
+
 ## Reward Tiers
 
 ```yaml
@@ -147,3 +154,17 @@ The API gives items safely:
 - Adds items to inventory when possible.
 - Drops overflow if the inventory is full.
 - Avoids dropping items inside temporary dungeon worlds when a safer saved location exists.
+
+## Loot Chest Item Data
+
+The same item data formats are used by several action fields, including `LOOT_CHEST`, custom mob drops, keys, cooldown
+items, and life items.
+
+Examples:
+
+```text
+KEY:gate_key:1
+DIAMOND:3-8
+COOLDOWN_REDUCE:300:1
+MMOITEMS:SWORD:SILVER_LANCE:1
+```

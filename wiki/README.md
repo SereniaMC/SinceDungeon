@@ -1,40 +1,24 @@
-# SinceDungeon Wiki
+# SinceDungeon Wiki Archive
 
-This folder contains the complete English documentation for SinceDungeon Core and SinceDungeon Premium.
+The canonical documentation for GitHub Pages now lives in:
 
-## Pages
+```text
+docs/
+```
 
-1. [Installation](01-installation.md)
-2. [Commands and Permissions](02-commands-permissions.md)
-3. [Core Configuration](03-core-configuration.md)
-4. [Dungeon Template Files](04-dungeon-template-files.md)
-5. [GUI Editor](05-gui-editor.md)
-6. [Core Actions](06-core-actions.md)
-7. [Rewards and Custom Items](07-rewards-and-items.md)
-8. [Party, Lives, Cooldowns, and Leaderboards](08-party-lives-cooldowns-leaderboards.md)
-9. [Premium Features](09-premium-features.md)
-10. [Developer API](10-developer-api.md)
-11. [Troubleshooting](11-troubleshooting.md)
-12. [Example Dungeon](12-example-dungeon.md)
-13. [Schematic and Instancing Setup](13-schematic-instancing.md)
+GitHub Pages is deployed from `docs/` by `.github/workflows/pages.yml`, so all complete and current documentation should
+be edited there.
 
-## Scope
+Start here:
 
-The wiki documents every major feature exposed by the plugin:
+- [Docs Home](../docs/index.md)
+- [Getting Started](../docs/getting-started.md)
+- [Dungeon Files](../docs/dungeon-files.md)
+- [Actions](../docs/actions.md)
+- [Example Dungeon](../docs/example-dungeon.md)
+- [Schematic and Folia Setup](../docs/folia-schematic.md)
+- [Premium Addon](../docs/premium.md)
+- [Troubleshooting](../docs/troubleshooting.md)
 
-- World and schematic dungeon instancing
-- Dungeon YAML templates
-- GUI dungeon editor
-- Core and Premium action systems
-- Rewards, reward tiers, reward processors, and custom item providers
-- Party system
-- Lives system
-- Cooldowns
-- Leaderboards
-- PlaceholderAPI conditions
-- Redis cross-server mode
-- Premium roulette, hologram drops, affixes, Discord webhooks, schematic engine, and native TextDisplay hologram leaderboards
-- Public API, events, and extension interfaces
-- Full per-dungeon setup workflow from file creation to GUI editing and test runs
-
-Use this folder as the source for GitHub Wiki pages or repository documentation.
+The old numbered wiki pages have been merged into `docs/` and removed from this folder to avoid another split-brain
+documentation set. Do not add new public documentation here; add it to `docs/` so GitHub Pages can build it.

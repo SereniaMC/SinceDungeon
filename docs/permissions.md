@@ -20,6 +20,14 @@ This permission controls:
 - Premium `/sdp` commands.
 - Admin target usage where checked by command logic.
 
+## Leaderboard Ignore Permission
+
+```text
+SinceDungeon.top.ignore
+```
+
+Players with this permission are ignored by leaderboard recording.
+
 ## Multiverse Inventory Bypass
 
 Core config includes bypass permissions that can be temporarily granted to prevent inventory clearing issues when a

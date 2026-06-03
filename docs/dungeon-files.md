@@ -180,6 +180,22 @@ locations:
   - "5,64,20"
 ```
 
+## Start Location
+
+```yaml
+settings:
+  start-location: "0,65,0"
+```
+
+Use `NONE` to keep the provider/world spawn.
+
+For schematic dungeons, this is a local schematic coordinate. It also supports yaw and pitch:
+
+```yaml
+settings:
+  start-location: "0,65,0,180,0"
+```
+
 ## Stage Insertion
 
 Admins can insert a stage into an existing dungeon file and shift later stage numbers:
@@ -188,3 +204,8 @@ Admins can insert a stage into an existing dungeon file and shift later stage nu
 /sincedungeon stage insert <map_id> <position>
 /sdp stage insert <map_id> <position>
 ```
+
+## Complete Example
+
+See [Example Dungeon](example-dungeon.md) for a compact full YAML file using conditions, rewards, stages, wave combat,
+loot chests, keys, doors, and a boss.

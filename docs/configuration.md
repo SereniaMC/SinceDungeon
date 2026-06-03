@@ -6,6 +6,28 @@ title: Configuration
 SinceDungeon loads Core configuration from `config.yml`, plus setting files under `settings/`. Dungeon-specific files
 can override many gameplay settings per map.
 
+Core configuration is stored in:
+
+```text
+plugins/SinceDungeon/config.yml
+```
+
+Premium configuration is stored in:
+
+```text
+plugins/SinceDungeon-PremiumAddon/config.yml
+```
+
+## Startup
+
+```yaml
+startup:
+  async-timeout-seconds: 30
+```
+
+This controls how long the plugin waits for async startup data loading before failing startup. Increase it if the
+database is remote or the server has many dungeon files.
+
 ## Cross-Server
 
 ```yaml
@@ -51,6 +73,32 @@ Supported backends:
 
 HikariCP pool settings are available under `database.pool`.
 
+Full pool example:
+
+```yaml
+database:
+  type: "sqlite"
+  host: "localhost"
+  port: 3306
+  database: "sincedungeonpremium"
+  username: "root"
+  password: ""
+  pool:
+    max-size: 10
+    min-idle: 2
+    max-lifetime: 1800000
+    timeout: 5000
+```
+
+Database stores:
+
+- Fastest solo clear records
+- Fastest party clear records
+- Kill records
+- Clear count records
+- Player lives
+- Player cooldowns
+
 ## Commands
 
 Core command labels can be changed:
@@ -77,6 +125,12 @@ settings:
 ```
 
 Available bundled locales include English, Vietnamese, and Chinese.
+
+Language files are modular under:
+
+```text
+plugins/SinceDungeon/languages/<locale>/
+```
 
 ## Party System
 
@@ -185,3 +239,17 @@ leaderboard:
   gui-size: 54
   date-format: "dd/MM/yyyy HH:mm"
 ```
+
+## Generated Settings Files
+
+Additional Core settings are split into:
+
+```text
+settings/actions.yml
+settings/effects.yml
+settings/gameplay.yml
+settings/items.yml
+settings/menus.yml
+```
+
+These files control GUI items, gameplay defaults, effects, menu layouts, and action defaults used by the editor.

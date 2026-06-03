@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public final class SinceDungeon extends JavaPlugin {
     private static SinceDungeon plugin;
@@ -149,7 +148,7 @@ public final class SinceDungeon extends JavaPlugin {
     private void startDataServices() {
         int timeoutSeconds = configFile.getInt("startup.async-timeout-seconds", 30);
 
-        databaseManager.connectAsync()
+        CompletableFuture<Void> startupTask = databaseManager.connectAsync()
                 .thenCompose(connected -> {
                     if (!connected) {
                         return CompletableFuture.failedFuture(new IllegalStateException("Database initialization failed."));
@@ -165,9 +164,17 @@ public final class SinceDungeon extends JavaPlugin {
 
                         return CompletableFuture.allOf(CompletableFuture.allOf(lifeLoads), templates, cooldowns);
                     });
-                })
-                .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                .whenComplete((ignored, throwable) -> SchedulerCompat.runGlobal(this, () -> {
+                });
+
+        SchedulerCompat.runGlobalLater(this, () -> {
+            if (!startupTask.isDone()) {
+                String msg = languageManager.getString("admin.log.startup_slow",
+                        "[Startup] SinceDungeon data is still loading after <seconds>s. The plugin will stay enabled and players will be blocked from joining until loading finishes.");
+                getLogger().warning(msg.replace("<seconds>", String.valueOf(timeoutSeconds)));
+            }
+        }, Math.max(1L, timeoutSeconds * 20L));
+
+        startupTask.whenComplete((ignored, throwable) -> SchedulerCompat.runGlobal(this, () -> {
                     if (throwable != null) {
                         String msg = languageManager.getString("admin.log.startup_failed", "[Startup] SinceDungeon startup failed: <error>");
                         String error = throwable.getMessage() == null ? throwable.getClass().getSimpleName() : throwable.getMessage();

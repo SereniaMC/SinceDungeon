@@ -18,6 +18,13 @@ It requires Core:
 SinceDungeon
 ```
 
+Premium requirements:
+
+- SinceDungeon Core
+- WorldEdit or FastAsyncWorldEdit for schematic mode
+- Optional MythicMobs
+- Native TextDisplay holograms are built in; DecentHolograms is not required
+
 ## Premium Commands
 
 ```text
@@ -336,4 +343,4 @@ instancing:
   mode: "SCHEMATIC"
 ```
 
-See [Folia and Schematic Instancing](folia-schematic.md) for full setup notes.
+See [Schematic and Folia Setup](folia-schematic.md) for the full schematic workflow.

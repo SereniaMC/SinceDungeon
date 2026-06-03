@@ -1,18 +1,16 @@
 title: SinceDungeon Wiki
 description: Complete English documentation for the SinceDungeon Minecraft dungeon plugin.
-theme: minima
+lang: en
 markdown: kramdown
+highlighter: rouge
 
-header_pages:
-  - getting-started.md
-  - configuration.md
-  - dungeon-files.md
-  - actions.md
-  - rewards.md
-  - commands.md
-  - leaderboards.md
-  - lives-cooldowns.md
-  - editor.md
-  - premium.md
-  - folia-schematic.md
-  - developer-api.md
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: page
