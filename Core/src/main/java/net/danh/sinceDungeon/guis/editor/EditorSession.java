@@ -66,7 +66,7 @@ public class EditorSession {
         if (FoliaDungeonValidator.isWorldCopyUnsupported(plugin) && config.getString("template-world") != null) {
             String msg = plugin.getLanguageManager().getString(
                     "editor.chat.folia_world_copy_blocked",
-                    "&cCannot save this dungeon on Folia while Core world-copy instancing is active. Use Premium SCHEMATIC shared-world mode with a preloaded shared world."
+                    "&cCannot save this dungeon on Folia while Core world-copy instancing is active. Premium SCHEMATIC shared-world mode works on Paper and Folia; on Folia, preload the shared world before saving or joining this dungeon."
             );
             if (player.isOnline()) player.sendMessage(ColorUtils.parseWithPrefix(msg));
             FoliaDungeonValidator.warnUnsupportedTemplateLoad(plugin, file.getName().replace(".yml", ""), config.getString("template-world"));

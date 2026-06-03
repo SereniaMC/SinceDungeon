@@ -194,13 +194,13 @@ particles:
 # ---------------------------------------------------------
 # [DUNGEON INSTANCING ENGINE]
 # WORLD = Clones complete world folders (Default Core Behavior).
-# SCHEMATIC = Generates a Void World and uses FAWE to paste a .schem file.
+# SCHEMATIC = Uses one shared void world and FAWE/WorldEdit to paste each .schem into an isolated region.
 # ---------------------------------------------------------
 instancing:
   mode: "SCHEMATIC"
   # The Y-Level where the schematic will be pasted in the Void World
   paste-y-level: 64
-  # Shared and dedicated schematic worlds use these defaults on Paper and Folia.
+  # The shared schematic world uses these defaults on Paper and Folia.
   world-settings:
     autosave: false
     time: 6000
@@ -211,13 +211,12 @@ instancing:
     unload-retry-delay-ticks: 100
     delete-delay-ticks: 40
   schematic:
-    # When enabled, every dungeon run is pasted into an isolated region of this one world.
+    # Every dungeon run is pasted into an isolated region of this one world.
     # Actions still use the same YAML coordinates; Core offsets them into the assigned region.
     paste-air: true
     shared-world:
-      # Folia cannot create or load worlds at runtime.
-      # On Folia, this world must already be loaded by the server before the plugin enables.
-      enabled: true
+      # Paper can create this world at runtime.
+      # Folia cannot create/load worlds at runtime, so this world must already be loaded before the plugin enables.
       name: "SDPremium_Schematic"
       spawn-location: "0,65,0"
       coordinate-y-offset: 0

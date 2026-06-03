@@ -2,7 +2,6 @@ package net.danh.sincedungeonpremium.systems.instancing;
 
 import net.danh.sinceDungeon.api.interfaces.InstanceProvider;
 import net.danh.sinceDungeon.utils.SchedulerCompat;
-import net.danh.sinceDungeon.utils.WorldUtils;
 import net.danh.sincedungeonpremium.SinceDungeonPremium;
 import net.danh.sincedungeonpremium.hooks.PremiumWorldEditHook;
 import org.bukkit.Bukkit;
@@ -14,7 +13,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -24,8 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Advanced schematic instancing engine.
- * In shared-world mode it keeps one void world loaded, pastes each dungeon into
- * an isolated coordinate region, and clears only that region when the run ends.
+ * It keeps one void world loaded, pastes each dungeon into an isolated coordinate
+ * region, and clears only that region when the run ends.
  */
 public class SchematicInstanceProvider implements InstanceProvider {
 
@@ -61,15 +59,11 @@ public class SchematicInstanceProvider implements InstanceProvider {
 
     @Override
     public boolean isSharedWorld() {
-        return plugin.getFileManager().getConfig().getBoolean("instancing.schematic.shared-world.enabled", true);
+        return true;
     }
 
     @Override
     public CompletableFuture<World> createInstance(String templateName, String instanceId) {
-        if (!isSharedWorld()) {
-            return createDedicatedWorldInstance(templateName, instanceId);
-        }
-
         CompletableFuture<World> future = new CompletableFuture<>();
 
         createSharedWorldAsync().whenComplete((world, throwable) -> SchedulerCompat.runGlobal(plugin, () -> {
@@ -90,10 +84,20 @@ public class SchematicInstanceProvider implements InstanceProvider {
                                     .replace("<file>", schemFile.getName())
                                     .replace("<error>", plugin.getFileManager().getMessageRaw("log.worldedit_unknown_fail"));
                             plugin.getLogger().warning(errMsg);
+                            SchedulerCompat.runGlobal(plugin, () -> {
+                                releaseSharedRegion(instanceId, world);
+                                future.completeExceptionally(new RuntimeException(errMsg));
+                            });
+                            return;
                         }
                     } else {
                         String warnMsg = plugin.getFileManager().getMessageRaw("log.schematic_not_found").replace("<template>", templateName);
                         plugin.getLogger().warning(warnMsg);
+                        SchedulerCompat.runGlobal(plugin, () -> {
+                            releaseSharedRegion(instanceId, world);
+                            future.completeExceptionally(new RuntimeException(warnMsg));
+                        });
+                        return;
                     }
 
                     SchedulerCompat.runGlobal(plugin, () -> {
@@ -144,20 +148,12 @@ public class SchematicInstanceProvider implements InstanceProvider {
 
     @Override
     public void releaseInstance(String instanceId, World world) {
-        if (isSharedWorldInstance(world)) {
-            releaseSharedRegion(instanceId, world);
-        } else {
-            unloadAndDeleteInstance(world);
-        }
+        releaseSharedRegion(instanceId, world);
     }
 
     @Override
     public void forceReleaseInstance(String instanceId, World world) {
-        if (isSharedWorldInstance(world)) {
-            releaseSharedRegion(instanceId, world);
-        } else {
-            forceUnloadAndDeleteInstance(world);
-        }
+        releaseSharedRegion(instanceId, world);
     }
 
     private World ensureSharedWorld() {
@@ -187,63 +183,6 @@ public class SchematicInstanceProvider implements InstanceProvider {
             plugin.getLogger().warning(throwable.getMessage());
             return null;
         });
-    }
-
-    private CompletableFuture<World> createDedicatedWorldInstance(String templateName, String instanceId) {
-        CompletableFuture<World> future = new CompletableFuture<>();
-
-        if (SchedulerCompat.isFolia()) {
-            String errorMsg = plugin.getFileManager().getMessageRaw("log.folia_dynamic_world_unsupported").replace("<instance>", instanceId);
-            plugin.getLogger().severe(errorMsg);
-            future.completeExceptionally(new UnsupportedOperationException(errorMsg));
-            return future;
-        }
-
-        SchedulerCompat.runGlobal(plugin, () -> {
-            WorldCreator creator = new WorldCreator(instanceId);
-            creator.generator(new VoidGenerator());
-            creator.generateStructures(false);
-
-            SchedulerCompat.createWorld(plugin, creator).whenComplete((world, throwable) -> {
-                if (throwable != null) {
-                    future.completeExceptionally(throwable);
-                    return;
-                }
-                if (world == null) {
-                    String errorMsg = plugin.getFileManager().getMessageRaw("log.void_world_fail").replace("<instance>", instanceId);
-                    plugin.getLogger().severe(errorMsg);
-                    future.completeExceptionally(new RuntimeException(errorMsg));
-                    return;
-                }
-
-                SchedulerCompat.runAsync(plugin, () -> {
-                    File schemFile = resolveSchematicFile(templateName);
-                    if (schemFile.exists()) {
-                        int yLevel = plugin.getFileManager().getConfig().getInt("instancing.paste-y-level", 64);
-                        boolean pasteAir = plugin.getFileManager().getConfig().getBoolean("instancing.schematic.paste-air", true);
-                        Location pasteLoc = new Location(world, 0, yLevel, 0);
-
-                        boolean success = PremiumWorldEditHook.pasteSchematic(schemFile, pasteLoc, pasteAir);
-                        if (!success) {
-                            String errMsg = plugin.getFileManager().getMessageRaw("log.schematic_paste_fail")
-                                    .replace("<file>", schemFile.getName())
-                                    .replace("<error>", plugin.getFileManager().getMessageRaw("log.worldedit_unknown_fail"));
-                            plugin.getLogger().warning(errMsg);
-                        }
-                    } else {
-                        String warnMsg = plugin.getFileManager().getMessageRaw("log.schematic_not_found").replace("<template>", templateName);
-                        plugin.getLogger().warning(warnMsg);
-                    }
-
-                    SchedulerCompat.runGlobal(plugin, () -> {
-                        configureWorld(world);
-                        future.complete(world);
-                    });
-                });
-            });
-        });
-
-        return future;
     }
 
     private CompletableFuture<World> createSharedWorldAsync() {
@@ -367,10 +306,6 @@ public class SchematicInstanceProvider implements InstanceProvider {
         return schemFile;
     }
 
-    private boolean isSharedWorldInstance(World world) {
-        return isSharedWorld() && world != null && world.getName().equalsIgnoreCase(getSharedWorldName());
-    }
-
     private String getSharedWorldName() {
         return plugin.getFileManager().getConfig().getString("instancing.schematic.shared-world.name", "SDPremium_Schematic");
     }
@@ -407,96 +342,12 @@ public class SchematicInstanceProvider implements InstanceProvider {
 
     @Override
     public void unloadAndDeleteInstance(World world) {
-        if (world == null || isSharedWorldInstance(world)) return;
-        File folder = world.getWorldFolder();
-
-        List<Player> players = world.getPlayers();
-        if (!players.isEmpty()) {
-            Location safeLoc = Bukkit.getWorlds().get(0).getSpawnLocation();
-            for (Player p : players) p.teleportAsync(safeLoc);
-            SchedulerCompat.runGlobalLater(plugin, () -> performUnload(world, folder, unloadRetries()), unloadDelayTicks());
-        } else {
-            performUnload(world, folder, unloadRetries());
-        }
-    }
-
-    private void performUnload(World world, File folder, int retries) {
-        if (!SchedulerCompat.isFolia()) {
-            for (Entity e : world.getEntities()) {
-                if (!(e instanceof Player)) {
-                    e.remove();
-                }
-            }
-        }
-
-        SchedulerCompat.unloadWorld(plugin, world, false).whenComplete((unloaded, throwable) -> {
-            if (throwable != null) {
-                plugin.getLogger().warning(throwable.getMessage());
-                scheduleUnloadRetry(world, folder, retries);
-                return;
-            }
-            if (Boolean.TRUE.equals(unloaded)) {
-                String logSuccess = plugin.getFileManager().getMessageRaw("log.world_unloaded").replace("<world>", world.getName());
-                plugin.getLogger().info(logSuccess);
-
-                SchedulerCompat.runAsyncLater(plugin, () -> {
-                    if (!WorldUtils.deleteWorld(folder)) {
-                        String logWarn = plugin.getFileManager().getMessageRaw("log.world_delete_fail").replace("<world>", folder.getName());
-                        plugin.getLogger().warning(logWarn);
-                    }
-                }, deleteDelayTicks());
-                return;
-            }
-            scheduleUnloadRetry(world, folder, retries);
-        });
+        // Schematic mode is always shared-world; individual runs are released by region.
     }
 
     @Override
     public void forceUnloadAndDeleteInstance(World world) {
-        if (world == null || isSharedWorldInstance(world)) return;
-        File folder = world.getWorldFolder();
-
-        for (Player p : world.getPlayers()) {
-            p.teleportAsync(Bukkit.getWorlds().get(0).getSpawnLocation());
-        }
-
-        SchedulerCompat.unloadWorld(plugin, world, false).whenComplete((unloaded, throwable) -> {
-            if (throwable == null && Boolean.TRUE.equals(unloaded)) {
-                String logSuccess = plugin.getFileManager().getMessageRaw("log.world_force_unloaded").replace("<world>", world.getName());
-                plugin.getLogger().info(logSuccess);
-                SchedulerCompat.runAsyncLater(plugin, () -> WorldUtils.deleteWorld(folder), deleteDelayTicks());
-            } else {
-                String logCritical = plugin.getFileManager().getMessageRaw("log.world_force_unload_fail").replace("<world>", world.getName());
-                plugin.getLogger().severe(logCritical);
-            }
-        });
-    }
-
-    private void scheduleUnloadRetry(World world, File folder, int retries) {
-        if (retries > 0) {
-            String logRetry = plugin.getFileManager().getMessageRaw("log.world_unload_retry").replace("<world>", world.getName());
-            plugin.getLogger().warning(logRetry);
-            SchedulerCompat.runGlobalLater(plugin, () -> performUnload(world, folder, retries - 1), retryDelayTicks());
-            return;
-        }
-        String logWarn = plugin.getFileManager().getMessageRaw("log.world_unload_fail").replace("<world>", world.getName());
-        plugin.getLogger().warning(logWarn);
-    }
-
-    private int unloadRetries() {
-        return Math.max(0, plugin.getFileManager().getConfig().getInt("instancing.world-settings.unload-retries", 5));
-    }
-
-    private long unloadDelayTicks() {
-        return Math.max(1L, plugin.getFileManager().getConfig().getInt("instancing.world-settings.unload-delay-ticks", 10));
-    }
-
-    private long retryDelayTicks() {
-        return Math.max(1L, plugin.getFileManager().getConfig().getInt("instancing.world-settings.unload-retry-delay-ticks", 100));
-    }
-
-    private long deleteDelayTicks() {
-        return Math.max(1L, plugin.getFileManager().getConfig().getInt("instancing.world-settings.delete-delay-ticks", 40));
+        // Schematic mode is always shared-world; the shared world stays loaded.
     }
 
     private record InstanceRegion(int slot, Location origin, Location pasteLocation, int radius) {

@@ -336,7 +336,8 @@ rewards:
 
 ## Schematic Instancing
 
-Premium can switch Core's instance provider to schematic mode when WorldEdit or FastAsyncWorldEdit is installed:
+Premium can switch Core's instance provider to schematic mode on Paper or Folia when WorldEdit or FastAsyncWorldEdit is
+installed:
 
 ```yaml
 instancing:

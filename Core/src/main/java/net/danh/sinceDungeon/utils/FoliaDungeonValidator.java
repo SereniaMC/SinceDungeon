@@ -28,7 +28,7 @@ public final class FoliaDungeonValidator {
 
         String msg = plugin.getLanguageManager().getString(
                 "admin.log.folia_template_world_blocked",
-                "[Instancing] Dungeon '<dungeon>' uses template-world '<world>', but Core world-copy dungeons cannot run on Folia. Use Premium SCHEMATIC shared-world mode with a preloaded shared world."
+                "[Instancing] Dungeon '<dungeon>' uses template-world '<world>', but Core world-copy dungeons cannot run on Folia. Premium SCHEMATIC shared-world mode works on Paper and Folia; on Folia, preload the shared world before startup."
         );
         plugin.getLogger().warning(msg
                 .replace("<dungeon>", dungeonId)
@@ -40,7 +40,7 @@ public final class FoliaDungeonValidator {
 
         String msg = plugin.getLanguageManager().getString(
                 "error.folia_world_mode_unsupported",
-                "&cThis server cannot start world-copy dungeons on Folia. Ask an admin to use Premium SCHEMATIC shared-world mode with a preloaded shared world."
+                "&cThis server cannot start world-copy dungeons on Folia. Premium SCHEMATIC shared-world mode works on Paper and Folia; on Folia, ask an admin to preload the shared world."
         );
         player.sendMessage(ColorUtils.parseWithPrefix(msg));
         warnUnsupportedTemplateLoad(plugin, template != null ? template.id() : "unknown", template != null ? template.templateWorld() : "unknown");

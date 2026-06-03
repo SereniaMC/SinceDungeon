@@ -1,12 +1,15 @@
 ---
 layout: page
-title: Schematic and Folia Setup
+title: Schematic Setup
 description: Complete A-Z workflow for creating, saving, placing, configuring, and testing SinceDungeon schematic dungeons.
 ---
 
+Premium `SCHEMATIC` mode works on both Paper and Folia. It keeps one shared schematic world loaded and pastes each
+dungeon run into an isolated region.
+
 Core's default `WORLD` provider clones full template world folders at runtime. That works on Paper, but Folia does not
-support Bukkit runtime world creation. For Folia, use Premium `SCHEMATIC` shared-world mode with a preloaded shared
-world.
+support Bukkit runtime world creation. On Folia, use Premium `SCHEMATIC` mode and preload the shared world before the
+plugin starts.
 
 This guide explains the full schematic workflow: how to build the map, where to stand when saving the schematic, where
 to put the file, how coordinates work, and how to test the dungeon correctly.
@@ -83,7 +86,7 @@ Set this in:
 plugins/SinceDungeon-PremiumAddon/config.yml
 ```
 
-Recommended Paper/Folia shared-world config:
+Recommended Paper/Folia schematic config:
 
 ```yaml
 instancing:
@@ -97,7 +100,6 @@ instancing:
   schematic:
     paste-air: true
     shared-world:
-      enabled: true
       name: "SDPremium_Schematic"
       spawn-location: "0,65,0"
       coordinate-y-offset: 0
@@ -116,8 +118,7 @@ Important fields:
 | `mode` | Must be `SCHEMATIC` to use Premium schematic instancing. |
 | `paste-y-level` | Y level where the schematic clipboard origin is pasted. |
 | `paste-air` | If `true`, air blocks in the schematic overwrite previous blocks. |
-| `shared-world.enabled` | Puts all runs in separated regions inside one shared world. |
-| `shared-world.name` | Shared world name. On Folia, this world must already be loaded. |
+| `shared-world.name` | Shared schematic world name. Paper can create it at runtime; Folia must preload it before plugin startup. |
 | `spawn-location` | Default local entry location if the dungeon YAML has `start-location: "NONE"`. |
 | `coordinate-y-offset` | Extra Y offset added to YAML coordinates. Keep `0` for normal setup. |
 | `region-spacing` | Distance between allocated dungeon regions. |

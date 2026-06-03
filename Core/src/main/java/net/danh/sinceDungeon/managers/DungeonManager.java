@@ -41,7 +41,7 @@ public class DungeonManager {
     private final Map<UUID, String> pendingCrossServerGames = new ConcurrentHashMap<>();
     private final Map<UUID, Long> pendingRequests = new ConcurrentHashMap<>();
     private final Map<String, CustomItemProvider> customItemProviders = new ConcurrentHashMap<>();
-    private final Map<String, DungeonGame> worldGames = new ConcurrentHashMap<>();
+    private final Map<String, Set<DungeonGame>> worldGames = new ConcurrentHashMap<>();
     private final Set<DungeonGame> registeredGames = ConcurrentHashMap.newKeySet();
 
     public DungeonManager(SinceDungeon plugin) {
@@ -594,14 +594,14 @@ public class DungeonManager {
 
 
     public void registerWorldGame(String worldName, DungeonGame game) {
-        worldGames.put(worldName, game);
+        worldGames.computeIfAbsent(worldName, key -> ConcurrentHashMap.newKeySet()).add(game);
         registeredGames.add(game);
     }
 
     public void unregisterWorldGame(String worldName) {
-        DungeonGame game = worldGames.remove(worldName);
-        if (game != null) {
-            registeredGames.remove(game);
+        Set<DungeonGame> games = worldGames.remove(worldName);
+        if (games != null) {
+            registeredGames.removeAll(games);
         }
     }
 
@@ -609,7 +609,13 @@ public class DungeonManager {
         if (game == null) return;
         registeredGames.remove(game);
         if (game.getWorld() != null) {
-            worldGames.remove(game.getWorld().getName(), game);
+            Set<DungeonGame> games = worldGames.get(game.getWorld().getName());
+            if (games != null) {
+                games.remove(game);
+                if (games.isEmpty()) {
+                    worldGames.remove(game.getWorld().getName(), games);
+                }
+            }
         }
     }
 
@@ -622,7 +628,9 @@ public class DungeonManager {
      * @return The DungeonGame object, or null if no match is found.
      */
     public DungeonGame getGameByWorld(String worldName) {
-        return worldGames.get(worldName);
+        Set<DungeonGame> games = worldGames.get(worldName);
+        if (games == null || games.isEmpty()) return null;
+        return games.iterator().next();
     }
 
     /**
@@ -636,9 +644,13 @@ public class DungeonManager {
     public DungeonGame getGameByLocation(Location location) {
         if (location == null || location.getWorld() == null) return null;
 
-        DungeonGame direct = worldGames.get(location.getWorld().getName());
-        if (direct != null && direct.ownsLocation(location)) {
-            return direct;
+        Set<DungeonGame> directGames = worldGames.get(location.getWorld().getName());
+        if (directGames != null) {
+            for (DungeonGame game : directGames) {
+                if (game.ownsLocation(location)) {
+                    return game;
+                }
+            }
         }
 
         for (DungeonGame game : registeredGames) {
@@ -656,7 +668,8 @@ public class DungeonManager {
 
     public boolean hasGameInWorld(String worldName) {
         if (worldName == null) return false;
-        if (worldGames.containsKey(worldName)) return true;
+        Set<DungeonGame> games = worldGames.get(worldName);
+        if (games != null && !games.isEmpty()) return true;
 
         for (DungeonGame game : registeredGames) {
             if (game.getWorld() != null && game.getWorld().getName().equals(worldName)) {
@@ -680,7 +693,7 @@ public class DungeonManager {
     public void dispatchEvent(Player p, Event event) {
         if (p == null) return;
         DungeonGame game = activeGames.get(p.getUniqueId());
-        if (game != null && game.getWorld() != null && game.getWorld().equals(p.getWorld())) {
+        if (game != null && game.getWorld() != null && game.getWorld().equals(p.getWorld()) && game.ownsLocation(p.getLocation())) {
             game.onEvent(event);
         }
     }

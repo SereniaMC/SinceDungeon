@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Added proactive Folia validation for Core template-world/world-copy dungeons during template load, join, and editor
-  save, with guidance to use Premium `SCHEMATIC` shared-world mode.
+  save, with guidance that Premium `SCHEMATIC` shared-world mode works on Paper and Folia.
 - Documented outcome-based life costs (`lives-deducted-on-leave`, `lives-deducted-on-fail`,
   `lives-deducted-on-clear`) and clarified their interaction with per-death costs and cooldown-on-leave.
 - Updated Premium hologram docs for native TextDisplay leaderboard holograms and added default line spacing/view range
@@ -25,11 +25,11 @@
 ### Added
 
 - Added API overload `joinDungeon(Player, String, boolean)` for controlled private dungeon joins by integrations.
-- Documented Folia-compatible Premium schematic shared-world setup.
+- Documented Premium schematic shared-world setup for Paper and Folia.
 - Documented Premium `NPC_INTERACTION` action.
 - Added GitHub Pages wiki under `docs/` with deployment workflow.
 
 ### Notes
 
-- Folia cannot create or load Bukkit worlds at runtime. For Folia deployments, use Premium `SCHEMATIC` mode with
-  shared-world enabled and preload the configured shared world before plugin startup.
+- Premium `SCHEMATIC` shared-world mode works on Paper and Folia. Folia cannot create or load Bukkit worlds at runtime,
+  so Folia deployments must preload the configured shared world before plugin startup.

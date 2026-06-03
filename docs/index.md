@@ -54,8 +54,9 @@ The left navigation contains every available documentation page.
 | Cooldowns      | Per-dungeon cooldowns after completion or early exit, depending on config.                   |
 | Top boards     | Database-backed leaderboard categories for time, party time, kills, and clears.              |
 
-On Folia, Core template-world copy mode is blocked before a run starts because Folia cannot create Bukkit worlds at
-runtime. Use Premium `SCHEMATIC` shared-world mode with a preloaded shared world.
+Premium `SCHEMATIC` shared-world mode works on Paper and Folia. On Folia, Core template-world copy mode is blocked
+before a run starts because Folia cannot create Bukkit worlds at runtime; use schematic mode with a preloaded shared
+world.
 
 ## Common Tasks
 

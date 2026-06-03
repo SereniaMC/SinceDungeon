@@ -5,7 +5,7 @@ error:
   dungeon_maintenance: "&cDungeon này hiện đang được bảo trì."
   dungeon_not_public: "&cDungeon này chưa được công khai."
   create_failed: "&cKhởi tạo Dungeon thất bại. Vui lòng báo cáo cho Quản trị viên."
-  folia_world_mode_unsupported: "&cMáy chủ này không thể chạy dungeon dạng copy world trên Folia. Hãy yêu cầu quản trị viên dùng Premium SCHEMATIC shared-world với world đã preload."
+  folia_world_mode_unsupported: "&cMáy chủ này không thể chạy dungeon dạng copy world trên Folia. Premium SCHEMATIC shared-world dùng được trên cả Paper và Folia; riêng Folia cần quản trị viên preload shared world."
   mythic_mob_not_found: "&cLỗi cấu hình: Không tìm thấy loại quái MythicMob <mob>."
   mob_spawn_fail: "&cGặp lỗi khi triệu hồi quái <mob>: <error>"
   init_failed: "&cKhởi tạo dữ liệu Dungeon thất bại."

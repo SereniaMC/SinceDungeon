@@ -2,6 +2,7 @@ package net.danh.sinceDungeon.actions.impl;
 
 import net.danh.sinceDungeon.managers.DungeonLoader;
 import net.danh.sinceDungeon.models.DungeonGame;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -90,12 +91,14 @@ public class BossSeal {
 
         World world = game.getWorld();
         for (Region region : regions) {
-            int minX = Math.min(region.corner1.getBlockX(), region.corner2.getBlockX());
-            int maxX = Math.max(region.corner1.getBlockX(), region.corner2.getBlockX());
-            int minY = Math.min(region.corner1.getBlockY(), region.corner2.getBlockY());
-            int maxY = Math.max(region.corner1.getBlockY(), region.corner2.getBlockY());
-            int minZ = Math.min(region.corner1.getBlockZ(), region.corner2.getBlockZ());
-            int maxZ = Math.max(region.corner1.getBlockZ(), region.corner2.getBlockZ());
+            Location corner1 = game.resolveBlockLocation(region.corner1);
+            Location corner2 = game.resolveBlockLocation(region.corner2);
+            int minX = Math.min(corner1.getBlockX(), corner2.getBlockX());
+            int maxX = Math.max(corner1.getBlockX(), corner2.getBlockX());
+            int minY = Math.min(corner1.getBlockY(), corner2.getBlockY());
+            int maxY = Math.max(corner1.getBlockY(), corner2.getBlockY());
+            int minZ = Math.min(corner1.getBlockZ(), corner2.getBlockZ());
+            int maxZ = Math.max(corner1.getBlockZ(), corner2.getBlockZ());
 
             for (int x = minX; x <= maxX; x++) {
                 for (int y = minY; y <= maxY; y++) {

@@ -30,9 +30,10 @@ stages: { }
 template-world: "ForgottenCrypt_Template"
 ```
 
-The value must match the source world folder name. SinceDungeon creates temporary instance worlds from this template.
-On Folia, this Core world-copy mode is not supported; use Premium `SCHEMATIC` shared-world mode, where the same
-`template-world` value names the schematic file.
+In Core `WORLD` mode, the value must match the source world folder name. SinceDungeon creates temporary instance worlds
+from this template. In Premium `SCHEMATIC` mode, which works on Paper and Folia, the same `template-world` value names
+the schematic file. On Folia, Core world-copy mode is not supported, so use schematic mode with a preloaded shared
+world.
 
 ## Public Visibility
 

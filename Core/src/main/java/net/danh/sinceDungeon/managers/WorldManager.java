@@ -30,7 +30,7 @@ public class WorldManager {
         if (SchedulerCompat.isFolia()) {
             String errorMsg = plugin.getLanguageManager().getString(
                     "admin.log.folia_world_mode_unsupported",
-                    "[Instancing] Folia does not support Bukkit runtime world creation. Use Premium SCHEMATIC shared-world mode with a preloaded shared world."
+                    "[Instancing] Folia does not support Bukkit runtime world creation. Premium SCHEMATIC shared-world mode works on Paper and Folia; on Folia, preload the shared world before startup."
             );
             plugin.getLogger().severe(errorMsg);
             finalFuture.completeExceptionally(new UnsupportedOperationException(errorMsg));

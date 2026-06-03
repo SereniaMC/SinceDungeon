@@ -37,9 +37,10 @@ Premium installation:
 4. Edit `plugins/SinceDungeon-PremiumAddon/config.yml`.
 5. If using schematic mode, place files in `plugins/SinceDungeon-PremiumAddon/schematics/`.
 
-On Folia, use Premium schematic shared-world mode. Core's default full-world cloning relies on runtime world creation,
-which Folia does not support. Core template-world dungeons are validated during load, editor save, and join so this
-unsupported setup is blocked before runtime.
+Premium schematic shared-world mode works on both Paper and Folia. On Folia, Core's default full-world cloning relies
+on runtime world creation, which Folia does not support; use schematic mode with a preloaded shared world instead.
+Core template-world dungeons are validated during load, editor save, and join so unsupported Folia setups are blocked
+before runtime.
 
 ## Generated Files
 
@@ -153,8 +154,8 @@ instancing:
   mode: "SCHEMATIC"
 ```
 
-If `shared-world.enabled` is true, all schematic runs are pasted into isolated regions inside one shared void world. On
-Folia, that shared world must already be loaded before SinceDungeon Premium enables.
+All schematic runs are pasted into isolated regions inside one shared void world. Paper can create that world at
+runtime; on Folia, that shared world must already be loaded before SinceDungeon Premium enables.
 
 For the complete per-dungeon workflow, see [Schematic and Folia Setup](folia-schematic.md).
 

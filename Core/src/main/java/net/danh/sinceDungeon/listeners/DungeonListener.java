@@ -74,7 +74,7 @@ public class DungeonListener implements Listener {
     private void pass(Player p, Event e) {
         if (p == null) return;
         DungeonGame game = plugin.getDungeonManager().getGame(p.getUniqueId());
-        if (game != null && game.getWorld() != null && game.getWorld().equals(p.getWorld())) {
+        if (game != null && game.getWorld() != null && game.getWorld().equals(p.getWorld()) && game.ownsLocation(p.getLocation())) {
             game.onEvent(e);
         }
     }
@@ -561,6 +561,19 @@ public class DungeonListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent e) {
+        Player p = e.getPlayer();
+        DungeonGame game = plugin.getDungeonManager().getGame(p.getUniqueId());
+        Location to = e.getTo();
+
+        if (game == null || game.getWorld() == null || to == null || to.getWorld() == null) return;
+        if (!to.getWorld().equals(game.getWorld())) return;
+        if (game.ownsLocation(to)) return;
+
+        e.setCancelled(true);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerRespawn(PlayerRespawnEvent e) {
         Player p = e.getPlayer();
@@ -688,9 +701,10 @@ public class DungeonListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent e) {
         Player p = e.getPlayer();
+        Location to = e.getTo();
 
-        if (e.getTo() != null && isDungeonLocation(e.getTo())) {
-            DungeonGame targetGame = plugin.getDungeonManager().getGameByLocation(e.getTo());
+        if (to != null && isDungeonLocation(to)) {
+            DungeonGame targetGame = plugin.getDungeonManager().getGameByLocation(to);
 
             if (targetGame == null || !targetGame.getParticipants().contains(p)) {
                 if (p.hasPermission("SinceDungeon.admin") && p.getGameMode() == GameMode.SPECTATOR) {
@@ -706,6 +720,17 @@ public class DungeonListener implements Listener {
 
         DungeonGame game = plugin.getDungeonManager().getGame(p.getUniqueId());
         if (game != null && game.getWorld() != null && game.getWorld().equals(p.getWorld())) {
+            if (to != null && to.getWorld() != null && to.getWorld().equals(game.getWorld()) && !game.ownsLocation(to)) {
+                if (p.hasPermission("SinceDungeon.admin") && p.getGameMode() == GameMode.SPECTATOR) {
+                    return;
+                }
+
+                e.setCancelled(true);
+                String blockMsg = plugin.getLanguageManager().getString("error.dungeon_sealed_teleport", "<red>Area sealed. Teleportation magic nullified!");
+                p.sendMessage(ColorUtils.parseWithPrefix(blockMsg));
+                return;
+            }
+
             PlayerTeleportEvent.TeleportCause cause = e.getCause();
             PlayerTeleportEvent.TeleportCause consumableEffect = null;
             for (PlayerTeleportEvent.TeleportCause c : PlayerTeleportEvent.TeleportCause.values()) {
