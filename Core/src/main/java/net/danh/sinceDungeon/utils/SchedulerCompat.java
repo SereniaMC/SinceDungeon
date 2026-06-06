@@ -131,6 +131,21 @@ public final class SchedulerCompat {
         }
     }
 
+    public static TaskHandle runAtEntityLater(Plugin plugin, Entity entity, Runnable task, long delayTicks) {
+        if (!FOLIA || entity == null) {
+            return runGlobalLater(plugin, task, delayTicks);
+        }
+        try {
+            Object scheduler = entity.getClass().getMethod("getScheduler").invoke(entity);
+            Method run = findMethod(scheduler.getClass(), "runDelayed", 4);
+            Object scheduled = run.invoke(scheduler, plugin, toConsumer(task), null, delayTicks);
+            return TaskHandle.reflective(scheduled);
+        } catch (ReflectiveOperationException e) {
+            plugin.getLogger().warning("Failed to use Folia delayed entity scheduler, falling back to global scheduler: " + e.getMessage());
+            return runGlobalLater(plugin, task, delayTicks);
+        }
+    }
+
     public static TaskHandle runAtEntityTimer(Plugin plugin, Entity entity, Runnable task, long delayTicks, long periodTicks) {
         if (!FOLIA || entity == null) {
             return runGlobalTimer(plugin, task, delayTicks, periodTicks);

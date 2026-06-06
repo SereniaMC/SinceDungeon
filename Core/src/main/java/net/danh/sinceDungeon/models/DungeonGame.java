@@ -8,6 +8,7 @@ import net.danh.sinceDungeon.api.events.DungeonEndEvent;
 import net.danh.sinceDungeon.api.events.DungeonFinishEvent;
 import net.danh.sinceDungeon.api.events.DungeonStageCompleteEvent;
 import net.danh.sinceDungeon.api.interfaces.InstanceProvider;
+import net.danh.sinceDungeon.hooks.MultiverseInventoriesHook;
 import net.danh.sinceDungeon.hooks.PAPIHook;
 import net.danh.sinceDungeon.managers.LivesManager;
 import net.danh.sinceDungeon.managers.TopManager;
@@ -36,7 +37,7 @@ import java.util.stream.Collectors;
 public class DungeonGame {
     private final SinceDungeon plugin;
     private final Map<UUID, PlayerState> savedStates = new ConcurrentHashMap<>();
-    private final Map<UUID, PermissionAttachment> permAttachments = new ConcurrentHashMap<>();
+
     private final String worldName;
     private final Map<UUID, Integer> playerKills = new ConcurrentHashMap<>();
     private final String cachedObjectivePrefix;
@@ -45,7 +46,7 @@ public class DungeonGame {
     private UUID initiatorId;
     private Set<Player> participants;
     private DungeonTemplate template;
-    private List<CopyOnWriteArrayList<DungeonAction>> stages = new ArrayList<>();
+    private List<CopyOnWriteArrayList<DungeonAction>> stages = new CopyOnWriteArrayList<>();
     private World dungeonWorld;
     private InstanceProvider instanceProvider;
     private Location instanceOrigin;
@@ -98,40 +99,6 @@ public class DungeonGame {
         return state != null ? state.location : null;
     }
 
-    private void applyMviBypass(Player p) {
-        if (p == null || !p.isOnline()) return;
-
-        boolean mviEnabled = Bukkit.getPluginManager().isPluginEnabled("Multiverse-Inventories") || Bukkit.getPluginManager().isPluginEnabled("Multiverse-Core");
-        if (!mviEnabled) return;
-
-        if (!permAttachments.containsKey(p.getUniqueId())) {
-            PermissionAttachment attachment = p.addAttachment(plugin);
-
-            List<String> bypassPerms = plugin.getConfigFile().getStringList("settings.mvi-bypass-permissions");
-            if (bypassPerms == null || bypassPerms.isEmpty()) {
-                bypassPerms = Arrays.asList("mvinv.bypass.*", "Multiverse-Inventories.bypass.*");
-            }
-
-            for (String perm : bypassPerms) {
-                attachment.setPermission(perm, true);
-            }
-
-            p.recalculatePermissions();
-            permAttachments.put(p.getUniqueId(), attachment);
-        }
-    }
-
-    private void removeMviBypass(Player p) {
-        if (p == null || !p.isOnline()) return;
-        PermissionAttachment attachment = permAttachments.remove(p.getUniqueId());
-        if (attachment != null) {
-            try {
-                p.removeAttachment(attachment);
-                p.recalculatePermissions();
-            } catch (Exception ignored) {
-            }
-        }
-    }
 
     private void parseStages() {
         List<Integer> keys = new ArrayList<>(template.stages().keySet());
@@ -317,7 +284,11 @@ public class DungeonGame {
             p.closeInventory();
             p.setVelocity(new Vector(0, 0, 0));
 
-            applyMviBypass(p);
+            if (!saveStats) {
+                MultiverseInventoriesHook.addWorldToGroupsOf(p.getWorld().getName(), spawnLoc.getWorld().getName());
+            }
+
+
 
             p.teleportAsync(spawnLoc).thenAccept(success -> {
                 if (success && p.isOnline()) {
@@ -347,7 +318,7 @@ public class DungeonGame {
             participants.remove(failed);
             plugin.getDungeonManager().removeGame(failed.getUniqueId());
             savedStates.remove(failed.getUniqueId());
-            removeMviBypass(failed);
+
         }
 
         if (participants.isEmpty()) {
@@ -848,11 +819,11 @@ public class DungeonGame {
 
                     p.teleportAsync(targetLoc).thenAccept(success -> {
                         if (success && p.isOnline()) {
-                            SchedulerCompat.runAtEntity(plugin, p, () -> SchedulerCompat.runGlobalLater(plugin, () -> restorePlayerState(p), 20L));
+                            SchedulerCompat.runAtEntityLater(plugin, p, () -> restorePlayerState(p), 20L);
                         } else if (p.isOnline()) {
                             SchedulerCompat.runAtEntity(plugin, p, () -> {
                                 p.teleportAsync(targetLoc);
-                                SchedulerCompat.runGlobalLater(plugin, () -> restorePlayerState(p), 20L);
+                                SchedulerCompat.runAtEntityLater(plugin, p, () -> restorePlayerState(p), 20L);
                             });
                         }
                     });
@@ -989,6 +960,7 @@ public class DungeonGame {
                 String instanceId = worldName;
                 InstanceProvider provider = instanceProvider != null ? instanceProvider : plugin.getInstanceManager().getProvider();
                 SchedulerCompat.runGlobalLater(plugin, () -> {
+                    MultiverseInventoriesHook.removeWorldFromGroups(instanceId);
                     provider.releaseInstance(instanceId, w);
                     aggressivelyCleanupMemory();
                 }, 40L);
@@ -1116,15 +1088,6 @@ public class DungeonGame {
             participants.clear();
         }
 
-        if (permAttachments != null) {
-            permAttachments.values().forEach(att -> {
-                try {
-                    if (att.getPermissible() != null) att.getPermissible().removeAttachment(att);
-                } catch (Exception ignored) {
-                }
-            });
-            permAttachments.clear();
-        }
 
         if (kickTask != null && !kickTask.isCancelled()) {
             kickTask.cancel();
@@ -1144,17 +1107,14 @@ public class DungeonGame {
     public void restorePlayerState(Player p) {
         if (p == null) return; // Prevent NPEs if player vanishes completely.
 
-        PlayerState state = savedStates.get(p.getUniqueId());
-        if (state != null) {
-            // Note: Critical Memory Fix: Even if the player is offline,
-            // we MUST remove the mapped data to free the lingering World pointer.
-            savedStates.remove(p.getUniqueId());
+        PlayerState state = savedStates.remove(p.getUniqueId());
 
-            if (!p.isOnline()) {
-                plugin.getDungeonManager().removeTransitioning(p.getUniqueId());
-                return;
-            }
+        if (!p.isOnline()) {
+            plugin.getDungeonManager().removeTransitioning(p.getUniqueId());
+            return;
+        }
 
+        SchedulerCompat.runAtEntity(plugin, p, () -> {
             NamespacedKey compassTag = new NamespacedKey(plugin, "dungeon_compass");
             NamespacedKey keyTag = new NamespacedKey(plugin, "dungeon_key_id");
             for (ItemStack item : p.getInventory().getContents()) {
@@ -1164,31 +1124,33 @@ public class DungeonGame {
             }
 
             if (template != null && template.settings().saveAndRestoreStats()) {
-                p.setGameMode(state.gameMode);
-                AttributeInstance attr = p.getAttribute(Attribute.MAX_HEALTH);
-                double maxHealth = attr != null ? attr.getValue() : 20.0;
+                if (state != null) {
+                    p.setGameMode(state.gameMode);
+                    AttributeInstance attr = p.getAttribute(Attribute.MAX_HEALTH);
+                    double maxHealth = attr != null ? attr.getValue() : 20.0;
 
-                p.setHealth(Math.max(1.0, Math.min(state.health, maxHealth)));
-                p.setFoodLevel(state.foodLevel);
+                    p.setHealth(Math.max(1.0, Math.min(state.health, maxHealth)));
+                    p.setFoodLevel(state.foodLevel);
 
-                for (PotionEffect effect : p.getActivePotionEffects()) p.removePotionEffect(effect.getType());
+                    for (PotionEffect effect : p.getActivePotionEffects()) p.removePotionEffect(effect.getType());
 
-                if (state.potionEffects != null) {
-                    for (PotionEffect effect : state.potionEffects) {
-                        int newDuration = effect.getDuration() - serverTicksActive;
-                        if (newDuration > 0) {
-                            p.addPotionEffect(new PotionEffect(effect.getType(), newDuration, effect.getAmplifier(), effect.isAmbient(), effect.hasParticles(), effect.hasIcon()));
+                    if (state.potionEffects != null) {
+                        for (PotionEffect effect : state.potionEffects) {
+                            int newDuration = effect.getDuration() - serverTicksActive;
+                            if (newDuration > 0) {
+                                p.addPotionEffect(new PotionEffect(effect.getType(), newDuration, effect.getAmplifier(), effect.isAmbient(), effect.hasParticles(), effect.hasIcon()));
+                            }
                         }
                     }
-                }
-                p.setFireTicks(state.fireTicks);
+                    p.setFireTicks(state.fireTicks);
 
-                p.getInventory().setContents(state.inventoryContents);
-                p.getInventory().setArmorContents(state.armorContents);
-                p.getInventory().setExtraContents(state.extraContents);
-                p.setLevel(state.level);
-                p.setExp(state.exp);
-                p.updateInventory();
+                    p.getInventory().setContents(state.inventoryContents);
+                    p.getInventory().setArmorContents(state.armorContents);
+                    p.getInventory().setExtraContents(state.extraContents);
+                    p.setLevel(state.level);
+                    p.setExp(state.exp);
+                    p.updateInventory();
+                }
             } else {
                 if (p.getGameMode() == GameMode.SPECTATOR) {
                     p.setGameMode(GameMode.SURVIVAL);
@@ -1196,9 +1158,8 @@ public class DungeonGame {
             }
             p.setFallDistance(0);
             p.setVelocity(new Vector(0, 0, 0));
-        }
+        });
 
-        removeMviBypass(p);
         plugin.getDungeonManager().removeTransitioning(p.getUniqueId());
     }
 

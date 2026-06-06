@@ -19,6 +19,9 @@ dependencies:
     MythicMobs:
       load: BEFORE
       required: false
+    Multiverse-Inventories:
+      load: BEFORE
+      required: false
 permissions:
   SinceDungeon.admin:
     description: Admin permission for SinceDungeon

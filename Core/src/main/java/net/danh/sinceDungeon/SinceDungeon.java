@@ -9,6 +9,7 @@ import net.danh.sinceDungeon.guis.editor.EditorListener;
 import net.danh.sinceDungeon.guis.editor.EditorManager;
 import net.danh.sinceDungeon.guis.editor.EditorMenuListener;
 import net.danh.sinceDungeon.guis.top.TopMenuListener;
+import net.danh.sinceDungeon.hooks.MultiverseInventoriesHook;
 import net.danh.sinceDungeon.hooks.PAPIHook;
 import net.danh.sinceDungeon.listeners.CooldownItemListener;
 import net.danh.sinceDungeon.listeners.DungeonListener;
@@ -274,6 +275,10 @@ public final class SinceDungeon extends JavaPlugin {
             SchedulerCompat.runAsync(this, () -> {
                 String currentPrefix = getConfigFile().getString("dungeon.world-prefix", "SinceDungeon_");
                 if (currentPrefix == null || currentPrefix.trim().isEmpty()) currentPrefix = "SinceDungeon_";
+                String finalPrefix = currentPrefix;
+                SchedulerCompat.runGlobal(this, () -> {
+                    MultiverseInventoriesHook.removeLeftoverWorldsFromGroups(finalPrefix);
+                });
                 for (File file : files) {
                     if (file.isDirectory() && (file.getName().startsWith("SinceDungeon_") || file.getName().startsWith(currentPrefix))) {
                         SchedulerCompat.runGlobal(this, () -> {

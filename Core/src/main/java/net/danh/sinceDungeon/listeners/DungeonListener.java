@@ -314,23 +314,7 @@ public class DungeonListener implements Listener {
             String logMsg = plugin.getLanguageManager().getString("admin.log.rescuing_ghost", "Rescuing ghosted player <player> from deleted instance.");
             plugin.getLogger().warning(logMsg.replace("<player>", p.getName()));
 
-            boolean mviEnabled = Bukkit.getPluginManager().isPluginEnabled("Multiverse-Inventories")
-                    || Bukkit.getPluginManager().isPluginEnabled("Multiverse-Core");
 
-            PermissionAttachment attachment = null;
-            if (mviEnabled) {
-                attachment = p.addAttachment(plugin);
-                List<String> bypassPerms = plugin.getConfigFile().getStringList("settings.mvi-bypass-permissions");
-                if (bypassPerms == null || bypassPerms.isEmpty()) {
-                    bypassPerms = Arrays.asList("mvinv.bypass.*", "Multiverse-Inventories.bypass.*");
-                }
-                for (String perm : bypassPerms) {
-                    attachment.setPermission(perm, true);
-                }
-                p.recalculatePermissions();
-            }
-
-            final PermissionAttachment finalAttachment = attachment;
 
             p.teleportAsync(Bukkit.getWorlds().get(0).getSpawnLocation()).thenAccept(success -> {
                 if (success) {
@@ -338,13 +322,7 @@ public class DungeonListener implements Listener {
                     p.sendMessage(ColorUtils.parseWithPrefix(msg));
 
                     SchedulerCompat.runGlobalLater(plugin, () -> {
-                        try {
-                            if (finalAttachment != null) {
-                                p.removeAttachment(finalAttachment);
-                                p.recalculatePermissions();
-                            }
-                        } catch (Exception ignored) {
-                        }
+
 
                         if (ghostWorld.getPlayers().isEmpty()) {
                             String delLog = plugin.getLanguageManager().getString("admin.log.deleting_ghost_world", "Ghost World <world> is now empty. Deleting permanently...");
