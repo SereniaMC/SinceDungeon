@@ -40,6 +40,7 @@ public record DungeonTemplate(String id, String templateWorld, boolean isPublic,
                            int cooldownSeconds, boolean cooldownOnLeave,
                            List<String> onStartCmds, List<String> onFinishCmds,
                            List<String> onFirstFinishCmds, String requiredItem,
-                           boolean consumeRequiredItem, String startLocation) {
+                           boolean consumeRequiredItem, String startLocation,
+                           List<String> blacklistedItems) {
     }
 }

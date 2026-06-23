@@ -80,6 +80,7 @@ public class EditorMenuListener implements Listener {
         if (listPath == null) return "default";
         if (listPath.endsWith("custom_drops") || listPath.contains("custom_drops")) return "edit_custom_drops";
         if (listPath.endsWith("commands") || listPath.contains("commands")) return "edit_commands";
+        if (listPath.equals("settings.blacklisted-items")) return "edit_blacklisted_items";
         if (listPath.contains(".actions.")) {
             String[] pathParts = listPath.split("\\.");
             if (pathParts.length > 0) {

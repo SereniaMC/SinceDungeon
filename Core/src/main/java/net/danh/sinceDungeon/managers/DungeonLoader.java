@@ -59,6 +59,7 @@ public class DungeonLoader {
         String requiredItem = config.getString("settings.required-item", "NONE");
         boolean consumeRequiredItem = config.getBoolean("settings.consume-required-item", true);
         String startLocation = config.contains("settings.start-location") ? config.getString("settings.start-location", "NONE") : plugin.getConfigFile().getString("dungeon.start-location", "NONE");
+        List<String> blacklistedItems = config.getStringList("settings.blacklisted-items");
 
         List<String> onStartCmds = config.getStringList("settings.commands.on-start");
         List<String> onFinishCmds = config.getStringList("settings.commands.on-finish");
@@ -70,7 +71,7 @@ public class DungeonLoader {
                 deductLivesOnLeave, deductLivesOnFail, deductLivesOnClear,
                 randomizeStages, maxPlayers, cooldownSeconds, cooldownOnLeave,
                 onStartCmds, onFinishCmds, onFirstFinishCmds, requiredItem,
-                consumeRequiredItem, startLocation
+                consumeRequiredItem, startLocation, blacklistedItems
         );
 
         List<DungeonTemplate.Condition> conditions = new ArrayList<>();

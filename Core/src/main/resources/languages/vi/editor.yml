@@ -188,6 +188,12 @@ editor:
     setting_consume_req_item_lore:
       - "&7Hiện tại: <val>"
       - "&eChuột Trái: Bật/Tắt"
+    setting_blacklisted_items: "&cVật Phẩm Bị Cấm"
+    setting_blacklisted_items_lore:
+      - "&7Vật phẩm bị tịch thu khi vào dungeon."
+      - "&7Tự động trả lại khi rời dungeon."
+      - "&7Hiện tại: &f<val> vật phẩm"
+      - "&eChuột Trái để quản lý danh sách"
     setting_cooldown_on_leave: "&eBắt Đầu Hồi Chiêu Khi Thoát/Thua"
     setting_cooldown_on_leave_lore:
       - "&7Hiện tại: <val>"
@@ -482,6 +488,13 @@ editor:
       edit_action_amount:
         - "&7Nhập số lượng quái vật cần sinh ra."
         - "&7Ví dụ: &a10"
+      edit_blacklisted_items:
+        - "&7Nhập vật phẩm cần cấm vào dungeon này."
+        - "&7Vanilla:    &fMATERIAL &8hoặc &fMATERIAL:CustomModelData"
+        - "&7MMOItems:   &fMMOITEMS:TYPE:ID"
+        - "&7MythicItem: &fMYTHICITEM:InternalId"
+        - "&7Ví dụ: &aDIAMOND_SWORD&8, &aPAPER:10606&8, &aMMOITEMS:SWORD:FierySword"
+        - "&7Mẹo: Gõ &cclear &7để xóa toàn bộ danh sách."
       edit_action_spawn_delay:
         - "&7Nhập độ trễ (tính bằng tick) giữa mỗi lần sinh quái."
         - "&720 tick = 1 giây. Nhập &a0 &7để sinh tất cả quái cùng lúc."

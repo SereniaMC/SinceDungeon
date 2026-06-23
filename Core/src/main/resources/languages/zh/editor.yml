@@ -188,6 +188,12 @@ editor:
     setting_consume_req_item_lore:
       - "&7当前: <val>"
       - "&e左键点击切换"
+    setting_blacklisted_items: "&c黑名单物品"
+    setting_blacklisted_items_lore:
+      - "&7进入副本时没收的物品。"
+      - "&7离开时自动归还。"
+      - "&7当前: &f<val> 件物品"
+      - "&e左键点击管理列表"
     setting_cooldown_on_leave: "&e离开/失败时触发冷却"
     setting_cooldown_on_leave_lore:
       - "&7当前: <val>"
@@ -482,6 +488,13 @@ editor:
       edit_action_amount:
         - "&7输入要生成的怪物数量。"
         - "&7示例: &a10"
+      edit_blacklisted_items:
+        - "&7输入要在此副本中禁止携带的物品。"
+        - "&7原版:       &fMATERIAL &8或 &fMATERIAL:自定义模型数据"
+        - "&7MMOItems:  &fMMOITEMS:TYPE:ID"
+        - "&7神话物品:   &fMYTHICITEM:内部ID"
+        - "&7示例: &aDIAMOND_SWORD&8, &aPAPER:10606&8, &aMMOITEMS:SWORD:FierySword"
+        - "&7提示: 输入 &cclear &7清空列表。"
       edit_action_spawn_delay:
         - "&7输入每次怪物生成之间的延迟（以刻为单位）。"
         - "&720 刻 = 1 秒。设为 &a0 &7则同时生成所有怪物。"

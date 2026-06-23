@@ -8,6 +8,7 @@ import net.danh.sinceDungeon.api.events.DungeonEndEvent;
 import net.danh.sinceDungeon.api.events.DungeonFinishEvent;
 import net.danh.sinceDungeon.api.events.DungeonStageCompleteEvent;
 import net.danh.sinceDungeon.api.interfaces.InstanceProvider;
+import net.danh.sinceDungeon.hooks.MMOItemsHook;
 import net.danh.sinceDungeon.hooks.MultiverseInventoriesHook;
 import net.danh.sinceDungeon.hooks.PAPIHook;
 import net.danh.sinceDungeon.managers.LivesManager;
@@ -22,7 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.permissions.PermissionAttachment;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.Vector;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 public class DungeonGame {
     private final SinceDungeon plugin;
     private final Map<UUID, PlayerState> savedStates = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ItemStack>> confiscatedItems = new ConcurrentHashMap<>();
 
     private final String worldName;
     private final Map<UUID, Integer> playerKills = new ConcurrentHashMap<>();
@@ -289,7 +291,6 @@ public class DungeonGame {
             }
 
 
-
             p.teleportAsync(spawnLoc).thenAccept(success -> {
                 if (success && p.isOnline()) {
                     p.setNoDamageTicks(60);
@@ -309,6 +310,22 @@ public class DungeonGame {
                         p.setExp(0f);
                         p.updateInventory();
                     }
+
+                    if (template != null) {
+                        List<String> blacklist = template.settings().blacklistedItems();
+                        if (!blacklist.isEmpty()) {
+                            List<ItemStack> taken = confiscateBlacklistedItems(p, blacklist);
+                            if (!taken.isEmpty()) {
+                                confiscatedItems.put(p.getUniqueId(), taken);
+                                String msg = plugin.getLanguageManager().getString("game.blacklist_warning",
+                                        "&cNote: &f<count> item(s) &cwere temporarily held. They will be returned when you leave.");
+                                if (msg != null && !msg.isEmpty()) {
+                                    p.sendMessage(ColorUtils.parseWithPrefix(msg.replace("<count>", String.valueOf(taken.size()))));
+                                }
+                            }
+                        }
+                    }
+
                     p.setFallDistance(0);
                 }
             });
@@ -1070,6 +1087,7 @@ public class DungeonGame {
 
         if (savedStates != null) savedStates.clear();
         if (playerKills != null) playerKills.clear();
+        if (confiscatedItems != null) confiscatedItems.clear();
 
         if (stages != null) {
             for (List<DungeonAction> list : stages) {
@@ -1102,6 +1120,104 @@ public class DungeonGame {
         this.initiatorId = null;
         this.template = null;
         this.lastParsedBar = null;
+    }
+
+    private List<ItemStack> confiscateBlacklistedItems(Player p, List<String> blacklist) {
+        List<ItemStack> taken = new ArrayList<>();
+
+        ItemStack[] contents = p.getInventory().getContents();
+        boolean contentsChanged = false;
+        for (int i = 0; i < contents.length; i++) {
+            if (isBlacklisted(contents[i], blacklist)) {
+                taken.add(contents[i].clone());
+                contents[i] = null;
+                contentsChanged = true;
+            }
+        }
+        if (contentsChanged) p.getInventory().setContents(contents);
+
+        ItemStack[] armor = p.getInventory().getArmorContents();
+        boolean armorChanged = false;
+        for (int i = 0; i < armor.length; i++) {
+            if (isBlacklisted(armor[i], blacklist)) {
+                taken.add(armor[i].clone());
+                armor[i] = null;
+                armorChanged = true;
+            }
+        }
+        if (armorChanged) p.getInventory().setArmorContents(armor);
+
+        if (!taken.isEmpty()) p.updateInventory();
+        return taken;
+    }
+
+    private boolean isBlacklisted(ItemStack item, List<String> blacklist) {
+        if (item == null || item.getType().isAir()) return false;
+        for (String entry : blacklist) {
+            if (entry == null || entry.isBlank()) continue;
+            String trimmed = entry.trim();
+            String upper = trimmed.toUpperCase();
+
+            if (upper.startsWith("MMOITEMS:")) {
+                if (matchesMmoItem(item, trimmed)) return true;
+                continue;
+            }
+            if (upper.startsWith("MYTHICITEM:")) {
+                if (matchesMythicItem(item, trimmed.substring("MYTHICITEM:".length()))) return true;
+                continue;
+            }
+
+            // Vanilla: MATERIAL or MATERIAL:CMD
+            String[] parts = upper.split(":", 2);
+            if (!parts[0].equalsIgnoreCase(item.getType().name())) continue;
+            if (parts.length == 1) return true;
+            try {
+                int cmd = Integer.parseInt(parts[1]);
+                if (getItemCmd(item) == cmd) return true;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesMmoItem(ItemStack item, String entry) {
+        if (!Bukkit.getPluginManager().isPluginEnabled("MMOItems")) return false;
+        try {
+            String mmoStr = MMOItemsHook.getMMOItemString(item);
+            if (mmoStr == null) return false;
+            // mmoStr  = "MMOITEMS:TYPE:ID:AMOUNT"
+            // entry   = "MMOITEMS:TYPE:ID"
+            String[] ep = entry.toUpperCase().split(":", 4);
+            String[] ip = mmoStr.toUpperCase().split(":", 4);
+            return ep.length >= 3 && ip.length >= 3
+                    && ep[1].equals(ip[1]) && ep[2].equals(ip[2]);
+        } catch (Exception | NoClassDefFoundError ignored) {
+            return false;
+        }
+    }
+
+    private boolean matchesMythicItem(ItemStack item, String itemId) {
+        try {
+            if (!item.hasItemMeta()) return false;
+            NamespacedKey key = new NamespacedKey("mythiccrucible", "item");
+            String stored = item.getItemMeta().getPersistentDataContainer()
+                    .get(key, PersistentDataType.STRING);
+            return stored != null && stored.equalsIgnoreCase(itemId);
+        } catch (Exception | NoClassDefFoundError ignored) {
+            return false;
+        }
+    }
+
+    private int getItemCmd(ItemStack item) {
+        if (!item.hasItemMeta()) return -1;
+        try {
+            CustomModelDataComponent cmdc =
+                    item.getItemMeta().getCustomModelDataComponent();
+            List<Float> floats = cmdc.getFloats();
+            if (!floats.isEmpty()) return floats.get(0).intValue();
+        } catch (Throwable ignored) {
+        }
+        return -1;
     }
 
     public void restorePlayerState(Player p) {
@@ -1156,6 +1272,22 @@ public class DungeonGame {
                     p.setGameMode(GameMode.SURVIVAL);
                 }
             }
+
+            List<ItemStack> taken = confiscatedItems.remove(p.getUniqueId());
+            if (taken != null && !taken.isEmpty()) {
+                for (ItemStack item : taken) {
+                    Map<Integer, ItemStack> leftover = p.getInventory().addItem(item.clone());
+                    for (ItemStack overflow : leftover.values()) {
+                        if (p.getWorld() != null) p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+                    }
+                }
+                p.updateInventory();
+                String msg = plugin.getLanguageManager().getString("game.blacklist_returned", "&aYour confiscated item(s) have been returned.");
+                if (msg != null && !msg.isEmpty()) {
+                    p.sendMessage(ColorUtils.parseWithPrefix(msg));
+                }
+            }
+
             p.setFallDistance(0);
             p.setVelocity(new Vector(0, 0, 0));
         });

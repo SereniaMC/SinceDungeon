@@ -73,3 +73,5 @@ action:
   door_unlocked: "&a<player> đã mở khóa cửa thành công!"
   boss_spawn: "&cBoss <boss> đã xuất hiện!"
   boss_defeated: "&aBoss đã bị đánh bại!"
+  blacklist_warning: "&cLưu ý: &f<count> vật phẩm &cđã bị tịch thu tạm thời. Sẽ được trả lại khi bạn rời dungeon."
+  blacklist_returned: "&aCác vật phẩm bị tịch thu đã được trả lại vào túi đồ của bạn."

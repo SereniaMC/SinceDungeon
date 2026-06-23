@@ -260,7 +260,8 @@ public class EditorSession {
         CMD_FINISH("settings.commands.on-finish", null, Material.REPEATING_COMMAND_BLOCK, "setting_cmd_finish", "LIST", null),
         CMD_FIRST_FINISH("settings.commands.on-first-finish", null, Material.COMMAND_BLOCK_MINECART, "setting_cmd_first_finish", "LIST", null),
         REQ_ITEM("settings.required-item", null, Material.TRIPWIRE_HOOK, "setting_req_item", "STRING", "NONE"),
-        CONSUME_REQ_ITEM("settings.consume-required-item", null, Material.LAVA_BUCKET, "setting_consume_req_item", "BOOL", true);
+        CONSUME_REQ_ITEM("settings.consume-required-item", null, Material.LAVA_BUCKET, "setting_consume_req_item", "BOOL", true),
+        BLACKLISTED_ITEMS("settings.blacklisted-items", null, Material.IRON_BARS, "setting_blacklisted_items", "LIST", null);
 
         private final String localPath;
         private final String globalFallbackPath;

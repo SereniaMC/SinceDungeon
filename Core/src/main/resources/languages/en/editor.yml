@@ -188,6 +188,12 @@ editor:
     setting_consume_req_item_lore:
       - "&7Current: <val>"
       - "&eLeft Click to toggle"
+    setting_blacklisted_items: "&cBlacklisted Items"
+    setting_blacklisted_items_lore:
+      - "&7Items confiscated on dungeon entry."
+      - "&7Returned automatically on exit."
+      - "&7Current: &f<val> item(s)"
+      - "&eLeft Click to manage list"
     setting_cooldown_on_leave: "&eCooldown On Leave/Fail"
     setting_cooldown_on_leave_lore:
       - "&7Current: <val>"
@@ -479,6 +485,13 @@ editor:
       edit_action_amount:
         - "&7Enter the amount of mobs to spawn."
         - "&7Example: &a10"
+      edit_blacklisted_items:
+        - "&7Enter an item entry to blacklist from this dungeon."
+        - "&7Vanilla:    &fMATERIAL &8or &fMATERIAL:CustomModelData"
+        - "&7MMOItems:   &fMMOITEMS:TYPE:ID"
+        - "&7MythicItem: &fMYTHICITEM:InternalId"
+        - "&7Example: &aDIAMOND_SWORD&8, &aPAPER:10606&8, &aMMOITEMS:SWORD:FierySword"
+        - "&7Tip: Type &cclear &7to empty the list."
       edit_action_spawn_delay:
         - "&7Enter the delay in ticks between each mob spawn."
         - "&720 ticks = 1 second. Set to &a0 &7to spawn all mobs at once."
