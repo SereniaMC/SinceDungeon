@@ -14,10 +14,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.util.Vector;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Handles the spawning and tracking of MythicMobs.
@@ -31,15 +28,24 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
     private final boolean scaleWithParty;
     private final String targetToKill;
     private final BossSeal bossSeal;
+    private final int spawnDelay;
+    private final double spawnRadius;
 
     private final Map<UUID, Entity> spawnedMobs = new HashMap<>();
+    private final Deque<Location> pendingSpawns = new ArrayDeque<>();
     private boolean hasTargetSpawned = false;
+    private int tickCounter = 0;
+    private int nextSpawnAt = 0;
 
     public MythicMobWaveAction(String internalName, int amount, int level, List<Vector> locations, boolean scaleWithParty, String targetToKill) {
-        this(internalName, amount, level, locations, scaleWithParty, targetToKill, BossSeal.disabled());
+        this(internalName, amount, level, locations, scaleWithParty, targetToKill, BossSeal.disabled(), 0, 0.0);
     }
 
     public MythicMobWaveAction(String internalName, int amount, int level, List<Vector> locations, boolean scaleWithParty, String targetToKill, BossSeal bossSeal) {
+        this(internalName, amount, level, locations, scaleWithParty, targetToKill, bossSeal, 0, 0.0);
+    }
+
+    public MythicMobWaveAction(String internalName, int amount, int level, List<Vector> locations, boolean scaleWithParty, String targetToKill, BossSeal bossSeal, int spawnDelay, double spawnRadius) {
         this.internalName = internalName;
         this.amount = amount;
         this.level = Math.max(1, level);
@@ -47,13 +53,15 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
         this.scaleWithParty = scaleWithParty;
         this.targetToKill = (targetToKill != null && !targetToKill.trim().isEmpty()) ? targetToKill : "NONE";
         this.bossSeal = bossSeal != null ? bossSeal : BossSeal.disabled();
+        this.spawnDelay = Math.max(0, spawnDelay);
+        this.spawnRadius = Math.max(0.0, spawnRadius);
     }
 
     @Override
     public String getObjectiveText() {
         String displayMob = (targetToKill.equalsIgnoreCase("NONE")) ? internalName : targetToKill;
         String base = SinceDungeon.getPlugin().getLanguageManager().getString("objective.mythic_wave", "<dark_red>Defeat Boss <red><mob> <gray>(Remaining: <remain>)");
-        return base.replace("<mob>", displayMob).replace("<remain>", String.valueOf(Math.max(1, spawnedMobs.size())));
+        return base.replace("<mob>", displayMob).replace("<remain>", String.valueOf(Math.max(1, spawnedMobs.size() + pendingSpawns.size())));
     }
 
     @Override
@@ -61,6 +69,7 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
         super.cleanup(game);
         bossSeal.remove();
         spawnedMobs.clear();
+        pendingSpawns.clear();
     }
 
     @Override
@@ -80,7 +89,7 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
             Entity ent = Bukkit.getEntity(uuid);
             if (ent != null) {
                 this.spawnedMobs.put(uuid, ent);
-                this.activeEntities.add(ent); // OPTIMIZATION: Cache physical entity
+                this.activeEntities.add(ent);
             }
             this.spawnedEntities.add(uuid);
         }
@@ -106,6 +115,37 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
         return original;
     }
 
+    private Location randomSpawnLoc(DungeonGame game, Vector vec) {
+        double offsetX, offsetZ;
+        if (spawnRadius > 0) {
+            double angle = Math.random() * 2 * Math.PI;
+            double dist = Math.random() * spawnRadius;
+            offsetX = dist * Math.cos(angle);
+            offsetZ = dist * Math.sin(angle);
+        } else {
+            offsetX = (Math.random() - 0.5) * 1.5;
+            offsetZ = (Math.random() - 0.5) * 1.5;
+        }
+        return findSafeSpawn(game.resolveLocation(vec, 0.5 + offsetX, 0, 0.5 + offsetZ));
+    }
+
+    private void doSpawn(DungeonGame game, Location finalLoc) {
+        try {
+            Entity bukkitEntity = MythicMobsHook.spawnMythicMob(finalLoc, internalName, this.level);
+            if (bukkitEntity != null) {
+                if (bukkitEntity instanceof LivingEntity le) {
+                    le.setRemoveWhenFarAway(false);
+                    le.setPersistent(true);
+                }
+                spawnedMobs.put(bukkitEntity.getUniqueId(), bukkitEntity);
+                this.spawnedEntities.add(bukkitEntity.getUniqueId());
+                this.activeEntities.add(bukkitEntity);
+            }
+        } catch (Exception e) {
+            game.sendMessage("error.mob_spawn_fail", "<mob>", internalName, "<error>", e.getMessage());
+        }
+    }
+
     @Override
     public void start(DungeonGame game) {
         if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
@@ -120,9 +160,6 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
             return;
         }
 
-        int count = 0;
-        String mobName = internalName;
-
         if (locations.isEmpty()) {
             this.completed = true;
             return;
@@ -132,12 +169,23 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
         if (finalAmount <= 0) finalAmount = 1;
 
         for (Vector vec : locations) {
-            Location loc = game.resolveLocation(vec);
             for (int i = 0; i < finalAmount; i++) {
-                double offsetX = (Math.random() - 0.5) * 1.5;
-                double offsetZ = (Math.random() - 0.5) * 1.5;
-                Location finalLoc = findSafeSpawn(loc.clone().add(0.5 + offsetX, 0, 0.5 + offsetZ));
+                pendingSpawns.add(randomSpawnLoc(game, vec));
+            }
+        }
 
+        if (pendingSpawns.isEmpty()) {
+            this.completed = true;
+            return;
+        }
+
+        int totalCount = pendingSpawns.size();
+
+        if (spawnDelay <= 0) {
+            int count = 0;
+            String mobName = internalName;
+            while (!pendingSpawns.isEmpty()) {
+                Location finalLoc = pendingSpawns.poll();
                 try {
                     Entity bukkitEntity = MythicMobsHook.spawnMythicMob(finalLoc, internalName, this.level);
                     if (bukkitEntity != null) {
@@ -145,12 +193,10 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
                             le.setRemoveWhenFarAway(false);
                             le.setPersistent(true);
                         }
-
                         spawnedMobs.put(bukkitEntity.getUniqueId(), bukkitEntity);
                         this.spawnedEntities.add(bukkitEntity.getUniqueId());
-                        this.activeEntities.add(bukkitEntity); // OPTIMIZATION: Cache physical entity
+                        this.activeEntities.add(bukkitEntity);
                         count++;
-
                         String activeName = MythicMobsHook.getActiveMobName(bukkitEntity.getUniqueId());
                         if (activeName != null) mobName = activeName;
                     }
@@ -158,14 +204,16 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
                     game.sendMessage("error.mob_spawn_fail", "<mob>", internalName, "<error>", e.getMessage());
                 }
             }
-        }
-
-        if (count == 0) {
-            this.completed = true;
-            game.sendActionMessage(this, "complete", "action.mythic_wave_complete", "<mob>", mobName);
+            if (count == 0) {
+                this.completed = true;
+                game.sendActionMessage(this, "complete", "action.mythic_wave_complete", "<mob>", mobName);
+            } else {
+                bossSeal.apply(game);
+                game.sendActionMessage(this, "init", "action.mythic_wave_start", "<amount>", String.valueOf(count), "<mob>", mobName);
+            }
         } else {
             bossSeal.apply(game);
-            game.sendActionMessage(this, "init", "action.mythic_wave_start", "<amount>", String.valueOf(count), "<mob>", mobName);
+            game.sendActionMessage(this, "init", "action.mythic_wave_start", "<amount>", String.valueOf(totalCount), "<mob>", internalName);
         }
     }
 
@@ -173,10 +221,14 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
     public void onTick(DungeonGame game) {
         if (completed) return;
 
-        // [Performance Fix] Eliminated Bukkit.getEntity
+        if (!pendingSpawns.isEmpty() && tickCounter >= nextSpawnAt) {
+            doSpawn(game, pendingSpawns.poll());
+            nextSpawnAt = tickCounter + spawnDelay;
+        }
+        tickCounter++;
+
         spawnedMobs.entrySet().removeIf(entry -> {
             Entity ent = entry.getValue();
-
             if (ent.isDead()) return true;
             if (!ent.isValid()) {
                 Location lastLoc = ent.getLocation();
@@ -188,14 +240,13 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
             return false;
         });
 
-        // Custom Phase Logic: Wait until the target mob spawns before completing the wave.
         if (!targetToKill.equalsIgnoreCase("NONE")) {
-            if (hasTargetSpawned && spawnedMobs.isEmpty()) {
+            if (hasTargetSpawned && spawnedMobs.isEmpty() && pendingSpawns.isEmpty()) {
                 this.completed = true;
                 game.sendActionMessage(this, "complete", "action.mythic_wave_complete", "<mob>", targetToKill);
             }
         } else {
-            if (spawnedMobs.isEmpty()) {
+            if (spawnedMobs.isEmpty() && pendingSpawns.isEmpty()) {
                 this.completed = true;
                 game.sendActionMessage(this, "complete", "action.mythic_wave_complete", "<mob>", internalName);
             }
@@ -213,19 +264,20 @@ public class MythicMobWaveAction extends DungeonAction implements Tickable {
                         return;
                     }
 
-                    if (spawnedMobs.isEmpty() && (targetToKill.equalsIgnoreCase("NONE") || hasTargetSpawned)) {
+                    int remaining = spawnedMobs.size() + pendingSpawns.size();
+                    boolean fullyDone = remaining == 0 && (targetToKill.equalsIgnoreCase("NONE") || hasTargetSpawned);
+
+                    if (fullyDone) {
                         this.completed = true;
                         String mobName = MythicMobsHook.getActiveMobName(e.getEntity().getUniqueId());
                         if (mobName == null)
                             mobName = (!targetToKill.equalsIgnoreCase("NONE")) ? targetToKill : internalName;
-
                         game.sendActionMessage(this, "complete", "action.mythic_wave_complete", "<mob>", mobName);
                     } else if (targetToKill.equalsIgnoreCase("NONE") || hasTargetSpawned) {
                         String mobName = MythicMobsHook.getActiveMobName(e.getEntity().getUniqueId());
                         if (mobName == null)
                             mobName = (!targetToKill.equalsIgnoreCase("NONE")) ? targetToKill : internalName;
-
-                        game.sendActionMessage(this, "progress", "action.mythic_wave_remain", "<amount>", String.valueOf(spawnedMobs.size()), "<mob>", mobName);
+                        game.sendActionMessage(this, "progress", "action.mythic_wave_remain", "<amount>", String.valueOf(remaining), "<mob>", mobName);
                     }
                 }
             }

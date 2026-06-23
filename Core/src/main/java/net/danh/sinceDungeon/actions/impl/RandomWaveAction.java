@@ -28,25 +28,32 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
     private final List<Vector> locations;
     private final List<MobOption> mobPool;
     private final boolean scaleWithParty;
+    private final List<String> customDrops;
+    private final int spawnDelay;
+    private final double spawnRadius;
+
     private final Map<UUID, Entity> spawnedMobs = new HashMap<>();
     private final Map<UUID, String> mobDisplayNames = new HashMap<>();
-    private final List<String> customDrops;
+    private final Deque<PendingSpawn> pendingSpawns = new ArrayDeque<>();
+    private int tickCounter = 0;
+    private int nextSpawnAt = 0;
+
+    private record PendingSpawn(Location loc, MobOption opt) {}
 
     public RandomWaveAction(int amount, List<Vector> locations, List<MobOption> mobPool, boolean scaleWithParty, List<String> customDrops) {
+        this(amount, locations, mobPool, scaleWithParty, customDrops, 0, 0.0);
+    }
+
+    public RandomWaveAction(int amount, List<Vector> locations, List<MobOption> mobPool, boolean scaleWithParty, List<String> customDrops, int spawnDelay, double spawnRadius) {
         this.amount = amount;
         this.locations = locations;
         this.mobPool = mobPool;
         this.scaleWithParty = scaleWithParty;
         this.customDrops = customDrops;
+        this.spawnDelay = Math.max(0, spawnDelay);
+        this.spawnRadius = Math.max(0.0, spawnRadius);
     }
 
-    /**
-     * Parses the raw string configurations of the Mob Pool into structured data.
-     * Extracts dynamic hardcodes into the localized LanguageManager to maintain multi-language support.
-     *
-     * @param raw The raw string list from the YAML configuration.
-     * @return A compiled list of MobOption records utilized for spawn weighting.
-     */
     public static List<MobOption> parseMobPool(List<String> raw) {
         List<MobOption> pool = new ArrayList<>();
         for (String entry : raw) {
@@ -107,6 +114,20 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
         return original;
     }
 
+    private Location randomSpawnLoc(DungeonGame game, Vector vec) {
+        double offsetX, offsetZ;
+        if (spawnRadius > 0) {
+            double angle = Math.random() * 2 * Math.PI;
+            double dist = Math.random() * spawnRadius;
+            offsetX = dist * Math.cos(angle);
+            offsetZ = dist * Math.sin(angle);
+        } else {
+            offsetX = (Math.random() - 0.5) * 1.5;
+            offsetZ = (Math.random() - 0.5) * 1.5;
+        }
+        return findSafeSpawn(game.resolveLocation(vec, 0.5 + offsetX, 0, 0.5 + offsetZ));
+    }
+
     private Entity spawnMob(DungeonGame game, Location loc, MobOption opt) {
         try {
             String pName = SinceDungeon.getPlugin().getConfigFile().getString("particles.mob_spawn", "CAMPFIRE_COSY_SMOKE");
@@ -160,10 +181,21 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
         return null;
     }
 
+    private void doSpawn(DungeonGame game, PendingSpawn ps) {
+        Entity ent = spawnMob(game, ps.loc(), ps.opt());
+        if (ent != null) {
+            UUID uid = ent.getUniqueId();
+            spawnedMobs.put(uid, ent);
+            mobDisplayNames.put(uid, ps.opt().id());
+            this.spawnedEntities.add(uid);
+            this.activeEntities.add(ent);
+        }
+    }
+
     @Override
     public String getObjectiveText() {
         String base = SinceDungeon.getPlugin().getLanguageManager().getString("objective.random_wave", "<red>Eliminate all enemies <gray>(Remaining: <remain>)");
-        return base.replace("<remain>", String.valueOf(spawnedMobs.size()));
+        return base.replace("<remain>", String.valueOf(spawnedMobs.size() + pendingSpawns.size()));
     }
 
     @Override
@@ -173,7 +205,6 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
             return;
         }
 
-        int count = 0;
         int finalAmount = scaleWithParty ? this.amount * game.getParticipants().size() : this.amount;
         if (finalAmount <= 0) finalAmount = 1;
 
@@ -181,27 +212,38 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
             for (int i = 0; i < finalAmount; i++) {
                 MobOption opt = pickRandom();
                 if (opt == null) continue;
-
-                double offsetX = (Math.random() - 0.5) * 1.5;
-                double offsetZ = (Math.random() - 0.5) * 1.5;
-                Location spawnLoc = findSafeSpawn(game.resolveLocation(vec, 0.5 + offsetX, 0, 0.5 + offsetZ));
-
-                Entity ent = spawnMob(game, spawnLoc, opt);
-                if (ent != null) {
-                    UUID uid = ent.getUniqueId();
-                    spawnedMobs.put(uid, ent);
-                    mobDisplayNames.put(uid, opt.id());
-                    this.spawnedEntities.add(uid);
-                    this.activeEntities.add(ent); // OPTIMIZATION: Cache physical entity
-                    count++;
-                }
+                pendingSpawns.add(new PendingSpawn(randomSpawnLoc(game, vec), opt));
             }
         }
 
-        if (count == 0) {
+        if (pendingSpawns.isEmpty()) {
             this.completed = true;
+            return;
+        }
+
+        int totalCount = pendingSpawns.size();
+
+        if (spawnDelay <= 0) {
+            int count = 0;
+            while (!pendingSpawns.isEmpty()) {
+                PendingSpawn ps = pendingSpawns.poll();
+                Entity ent = spawnMob(game, ps.loc(), ps.opt());
+                if (ent != null) {
+                    UUID uid = ent.getUniqueId();
+                    spawnedMobs.put(uid, ent);
+                    mobDisplayNames.put(uid, ps.opt().id());
+                    this.spawnedEntities.add(uid);
+                    this.activeEntities.add(ent);
+                    count++;
+                }
+            }
+            if (count == 0) {
+                this.completed = true;
+            } else {
+                game.sendActionMessage(this, "init", "action.random_wave_start", "<amount>", String.valueOf(count));
+            }
         } else {
-            game.sendActionMessage(this, "init", "action.random_wave_start", "<amount>", String.valueOf(count));
+            game.sendActionMessage(this, "init", "action.random_wave_start", "<amount>", String.valueOf(totalCount));
         }
     }
 
@@ -209,22 +251,26 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
     public void onTick(DungeonGame game) {
         if (completed) return;
 
-        // [Performance Fix] Eliminated Bukkit.getEntity array lookup completely!
+        if (!pendingSpawns.isEmpty() && tickCounter >= nextSpawnAt) {
+            doSpawn(game, pendingSpawns.poll());
+            nextSpawnAt = tickCounter + spawnDelay;
+        }
+        tickCounter++;
+
         spawnedMobs.entrySet().removeIf(entry -> {
             Entity ent = entry.getValue();
-
             if (ent.isDead()) return true;
             if (!ent.isValid()) {
                 Location lastLoc = ent.getLocation();
                 if (lastLoc.getWorld() != null && !lastLoc.isChunkLoaded()) {
-                    return false; // Safely skip unloaded entities
+                    return false;
                 }
                 return true;
             }
             return false;
         });
 
-        if (spawnedMobs.isEmpty()) {
+        if (spawnedMobs.isEmpty() && pendingSpawns.isEmpty()) {
             this.completed = true;
             game.sendActionMessage(this, "complete", "action.random_wave_complete");
         }
@@ -237,11 +283,12 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
             if (spawnedMobs.remove(uid) != null) {
                 handleCustomDrops(e.getEntity().getLocation());
                 mobDisplayNames.remove(uid);
-                if (spawnedMobs.isEmpty()) {
+                int remaining = spawnedMobs.size() + pendingSpawns.size();
+                if (remaining == 0) {
                     this.completed = true;
                     game.sendActionMessage(this, "complete", "action.random_wave_complete");
                 } else {
-                    game.sendActionMessage(this, "progress", "action.random_wave_remain", "<amount>", String.valueOf(spawnedMobs.size()));
+                    game.sendActionMessage(this, "progress", "action.random_wave_remain", "<amount>", String.valueOf(remaining));
                 }
             }
         }
@@ -252,6 +299,7 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
         super.cleanup(game);
         spawnedMobs.clear();
         mobDisplayNames.clear();
+        pendingSpawns.clear();
     }
 
     private void handleCustomDrops(Location loc) {

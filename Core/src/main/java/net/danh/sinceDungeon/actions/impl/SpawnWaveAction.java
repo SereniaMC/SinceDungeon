@@ -33,11 +33,21 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
     private final List<String> equipmentList;
     private final boolean scaleWithParty;
     private final List<String> customDrops;
+    private final int spawnDelay;
+    private final double spawnRadius;
 
     private final Map<UUID, Entity> spawnedMobs = new HashMap<>();
+    private final Deque<Location> pendingSpawns = new ArrayDeque<>();
+    private int tickCounter = 0;
+    private int nextSpawnAt = 0;
 
     public SpawnWaveAction(EntityType type, int amount, List<Vector> locations,
                            String customName, boolean isBaby, List<String> attributesList, List<String> equipmentList, boolean scaleWithParty, List<String> customDrops) {
+        this(type, amount, locations, customName, isBaby, attributesList, equipmentList, scaleWithParty, customDrops, 0, 0.0);
+    }
+
+    public SpawnWaveAction(EntityType type, int amount, List<Vector> locations,
+                           String customName, boolean isBaby, List<String> attributesList, List<String> equipmentList, boolean scaleWithParty, List<String> customDrops, int spawnDelay, double spawnRadius) {
         this.type = type;
         this.amount = amount;
         this.locations = locations;
@@ -47,18 +57,21 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
         this.equipmentList = equipmentList;
         this.scaleWithParty = scaleWithParty;
         this.customDrops = customDrops;
+        this.spawnDelay = Math.max(0, spawnDelay);
+        this.spawnRadius = Math.max(0.0, spawnRadius);
     }
 
     @Override
     public String getObjectiveText() {
         String base = SinceDungeon.getPlugin().getLanguageManager().getString("objective.spawn_wave", "<yellow>Eliminate <red><mob> <gray>(Remaining: <remain>)");
-        return base.replace("<mob>", type.name()).replace("<remain>", String.valueOf(spawnedMobs.size()));
+        return base.replace("<mob>", type.name()).replace("<remain>", String.valueOf(spawnedMobs.size() + pendingSpawns.size()));
     }
 
     @Override
     public void cleanup(DungeonGame game) {
         super.cleanup(game);
         spawnedMobs.clear();
+        pendingSpawns.clear();
     }
 
     @Override
@@ -72,22 +85,26 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
     public void onTick(DungeonGame game) {
         if (completed) return;
 
-        // [Performance Fix] Uses directly mapped Entity reference to avoid Bukkit global entity array lookup
+        if (!pendingSpawns.isEmpty() && tickCounter >= nextSpawnAt) {
+            doSpawn(game, pendingSpawns.poll());
+            nextSpawnAt = tickCounter + spawnDelay;
+        }
+        tickCounter++;
+
         spawnedMobs.entrySet().removeIf(entry -> {
             Entity ent = entry.getValue();
-
             if (ent.isDead()) return true;
             if (!ent.isValid()) {
                 Location lastLoc = ent.getLocation();
                 if (lastLoc.getWorld() != null && !lastLoc.isChunkLoaded()) {
-                    return false; // Safely skip unloaded entities
+                    return false;
                 }
                 return true;
             }
             return false;
         });
 
-        if (spawnedMobs.isEmpty()) {
+        if (spawnedMobs.isEmpty() && pendingSpawns.isEmpty()) {
             this.completed = true;
             game.sendActionMessage(this, "complete", "action.kill_complete", "<mob>", type.name());
         }
@@ -111,6 +128,20 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
             check.add(0, 1, 0);
         }
         return original;
+    }
+
+    private Location randomSpawnLoc(DungeonGame game, Vector vec) {
+        double offsetX, offsetZ;
+        if (spawnRadius > 0) {
+            double angle = Math.random() * 2 * Math.PI;
+            double dist = Math.random() * spawnRadius;
+            offsetX = dist * Math.cos(angle);
+            offsetZ = dist * Math.sin(angle);
+        } else {
+            offsetX = (Math.random() - 0.5) * 1.5;
+            offsetZ = (Math.random() - 0.5) * 1.5;
+        }
+        return findSafeSpawn(game.resolveLocation(vec, 0.5 + offsetX, 0, 0.5 + offsetZ));
     }
 
     private void applyCustomProperties(LivingEntity living) {
@@ -186,10 +217,37 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
         }
     }
 
+    private void doSpawn(DungeonGame game, Location finalLoc) {
+        String pName = SinceDungeon.getPlugin().getConfigFile().getString("particles.mob_spawn", "CAMPFIRE_COSY_SMOKE");
+        Particle pType;
+        try {
+            pType = Particle.valueOf(pName.toUpperCase());
+        } catch (Exception e) {
+            pType = Particle.CAMPFIRE_COSY_SMOKE;
+        }
+
+        String sName = SinceDungeon.getPlugin().getConfigFile().getString("sounds.mob_spawn", "entity.zombie.break_wooden_door");
+        Sound sType = SoundUtils.getSound(sName);
+
+        finalLoc.getChunk().load(true);
+        try {
+            Entity ent = game.getWorld().spawnEntity(finalLoc, type);
+            if (ent instanceof LivingEntity living) {
+                applyCustomProperties(living);
+                game.getWorld().spawnParticle(pType, finalLoc.clone().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.05);
+                if (sType != null) game.getWorld().playSound(finalLoc, sType, 0.5f, 0.5f);
+                spawnedMobs.put(ent.getUniqueId(), ent);
+                this.spawnedEntities.add(ent.getUniqueId());
+                this.activeEntities.add(ent);
+            } else if (ent != null) {
+                ent.remove();
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     @Override
     public void start(DungeonGame game) {
-        int count = 0;
-
         if (locations.isEmpty()) {
             this.completed = true;
             return;
@@ -210,29 +268,32 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
         Sound sType = SoundUtils.getSound(sName);
 
         for (Vector vec : locations) {
-            Location loc = game.resolveLocation(vec);
-
             for (int i = 0; i < finalAmount; i++) {
-                double offsetX = (Math.random() - 0.5) * 1.5;
-                double offsetZ = (Math.random() - 0.5) * 1.5;
-                Location finalLoc = findSafeSpawn(loc.clone().add(0.5 + offsetX, 0, 0.5 + offsetZ));
+                pendingSpawns.add(randomSpawnLoc(game, vec));
+            }
+        }
 
+        if (pendingSpawns.isEmpty()) {
+            this.completed = true;
+            return;
+        }
+
+        int totalCount = pendingSpawns.size();
+
+        if (spawnDelay <= 0) {
+            int count = 0;
+            while (!pendingSpawns.isEmpty()) {
+                Location finalLoc = pendingSpawns.poll();
                 finalLoc.getChunk().load(true);
-
                 try {
                     Entity ent = game.getWorld().spawnEntity(finalLoc, type);
-
                     if (ent instanceof LivingEntity living) {
                         applyCustomProperties(living);
-
                         game.getWorld().spawnParticle(pType, finalLoc.clone().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.05);
-                        if (sType != null) {
-                            game.getWorld().playSound(finalLoc, sType, 0.5f, 0.5f);
-                        }
-
+                        if (sType != null) game.getWorld().playSound(finalLoc, sType, 0.5f, 0.5f);
                         spawnedMobs.put(ent.getUniqueId(), ent);
                         this.spawnedEntities.add(ent.getUniqueId());
-                        this.activeEntities.add(ent); // OPTIMIZATION: Cache physical entity
+                        this.activeEntities.add(ent);
                         count++;
                     } else if (ent != null) {
                         ent.remove();
@@ -240,12 +301,13 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
                 } catch (Exception ignored) {
                 }
             }
-        }
-
-        if (count == 0) {
-            this.completed = true;
+            if (count == 0) {
+                this.completed = true;
+            } else {
+                game.sendActionMessage(this, "init", "action.spawn_wave", "<amount>", String.valueOf(count), "<mob>", type.name());
+            }
         } else {
-            game.sendActionMessage(this, "init", "action.spawn_wave", "<amount>", String.valueOf(count), "<mob>", type.name());
+            game.sendActionMessage(this, "init", "action.spawn_wave", "<amount>", String.valueOf(totalCount), "<mob>", type.name());
         }
     }
 
@@ -254,11 +316,12 @@ public class SpawnWaveAction extends DungeonAction implements Tickable {
         if (event instanceof EntityDeathEvent e) {
             if (spawnedMobs.remove(e.getEntity().getUniqueId()) != null) {
                 handleCustomDrops(e.getEntity().getLocation());
-                if (spawnedMobs.isEmpty()) {
+                int remaining = spawnedMobs.size() + pendingSpawns.size();
+                if (remaining == 0) {
                     this.completed = true;
                     game.sendActionMessage(this, "complete", "action.kill_complete", "<mob>", type.name());
                 } else {
-                    game.sendActionMessage(this, "progress", "action.kill_remain", "<amount>", String.valueOf(spawnedMobs.size()));
+                    game.sendActionMessage(this, "progress", "action.kill_remain", "<amount>", String.valueOf(remaining));
                 }
             }
         }

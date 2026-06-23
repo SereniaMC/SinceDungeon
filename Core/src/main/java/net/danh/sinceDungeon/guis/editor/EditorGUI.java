@@ -923,7 +923,7 @@ public class EditorGUI {
             String lowerKey = key.toLowerCase(Locale.ROOT);
             p.isLocation = lowerKey.contains("loc") || lowerKey.contains("pos") || lowerKey.contains("center") || lowerKey.contains("target") || lowerKey.contains("corner") || lowerKey.contains("levers");
 
-            boolean isNumber = rawValue instanceof Number || lowerKey.contains("time") || lowerKey.contains("amount") || lowerKey.contains("radius") || lowerKey.contains("chance") || lowerKey.contains("level") || lowerKey.contains("health") || lowerKey.contains("damage") || lowerKey.contains("speed") || lowerKey.contains("interval") || lowerKey.contains("stage");
+            boolean isNumber = rawValue instanceof Number || lowerKey.contains("time") || lowerKey.contains("amount") || lowerKey.contains("radius") || lowerKey.contains("delay") || lowerKey.contains("chance") || lowerKey.contains("level") || lowerKey.contains("health") || lowerKey.contains("damage") || lowerKey.contains("speed") || lowerKey.contains("interval") || lowerKey.contains("stage");
             boolean isBoolean = rawValue instanceof Boolean || lowerKey.contains("is_baby") || lowerKey.contains("scale_with_party") || lowerKey.contains("per_player");
 
             EditorGUI gui = new EditorGUI(plugin);
@@ -957,6 +957,8 @@ public class EditorGUI {
             if (lowerKey.contains("equipment")) p.icon = Material.IRON_CHESTPLATE;
             if (lowerKey.contains("drops")) p.icon = Material.DIAMOND;
             if (lowerKey.contains("random_mobs")) p.icon = Material.TRIAL_SPAWNER;
+            if (lowerKey.contains("delay")) p.icon = Material.CLOCK;
+            if (lowerKey.equals("spawn_radius")) p.icon = Material.ENDER_EYE;
 
             return p;
         }

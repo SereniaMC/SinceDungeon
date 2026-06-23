@@ -168,6 +168,8 @@ public class DefaultRegistry {
         spawnDefaults.put("equipment", plugin.getConfigFile().getStringList("action-defaults.spawn_wave.equipment"));
         spawnDefaults.put("locations", new ArrayList<>(Collections.singletonList("0,0,0")));
         spawnDefaults.put("custom_drops", new ArrayList<String>());
+        spawnDefaults.put("spawn_delay", plugin.getConfigFile().getInt("action-defaults.spawn_wave.spawn_delay", 0));
+        spawnDefaults.put("spawn_radius", plugin.getConfigFile().getDouble("action-defaults.spawn_wave.spawn_radius", 0.0));
         spawnDefaults.put("start_message", plugin.getConfigFile().getStringList("action-defaults.spawn_wave.start_message"));
 
         manager.registerAction("SPAWN_WAVE", map -> {
@@ -197,7 +199,9 @@ public class DefaultRegistry {
                     List<String> customDrops = new ArrayList<>();
                     if (map.get("custom_drops") instanceof List<?> l) l.forEach(o -> customDrops.add(o.toString()));
 
-                    return new SpawnWaveAction(mob, amount, v, customName, isBaby, attributesList, equipmentList, scaleWithParty, customDrops);
+                    int spawnDelay = getInt(map.get("spawn_delay"), (int) spawnDefaults.get("spawn_delay"));
+                    double spawnRadius = getDouble(map.get("spawn_radius"), (double) spawnDefaults.get("spawn_radius"));
+                    return new SpawnWaveAction(mob, amount, v, customName, isBaby, attributesList, equipmentList, scaleWithParty, customDrops, spawnDelay, spawnRadius);
                 }, plugin.getLanguageManager().getString("editor.actions_name.spawn_wave", "Spawn Vanilla Mob"), Material.ZOMBIE_HEAD,
                 plugin.getLanguageManager().getString("editor.actions.spawn_wave", "Spawn Vanilla Mobs"),
                 spawnDefaults, new HashMap<>());
@@ -296,6 +300,8 @@ public class DefaultRegistry {
         mmDefaults.put("target_to_kill", plugin.getConfigFile().getString("action-defaults.mythic_wave.target_to_kill", "NONE"));
         mmDefaults.put("locations", new ArrayList<>(Collections.singletonList("0,0,0")));
         mmDefaults.put("seal", defaultSealConfig());
+        mmDefaults.put("spawn_delay", plugin.getConfigFile().getInt("action-defaults.mythic_wave.spawn_delay", 0));
+        mmDefaults.put("spawn_radius", plugin.getConfigFile().getDouble("action-defaults.mythic_wave.spawn_radius", 0.0));
         mmDefaults.put("start_message", plugin.getConfigFile().getStringList("action-defaults.mythic_wave.start_message"));
 
         manager.registerAction("MYTHIC_WAVE", map -> {
@@ -307,7 +313,9 @@ public class DefaultRegistry {
                     String targetToKill = String.valueOf(map.getOrDefault("target_to_kill", mmDefaults.get("target_to_kill")));
                     BossSeal bossSeal = BossSeal.fromConfig(map.get("seal"));
 
-                    return new MythicMobWaveAction(mob, amount, level, v, scaleWithParty, targetToKill, bossSeal);
+                    int spawnDelay = getInt(map.get("spawn_delay"), (int) mmDefaults.get("spawn_delay"));
+                    double spawnRadius = getDouble(map.get("spawn_radius"), (double) mmDefaults.get("spawn_radius"));
+                    return new MythicMobWaveAction(mob, amount, level, v, scaleWithParty, targetToKill, bossSeal, spawnDelay, spawnRadius);
                 }, plugin.getLanguageManager().getString("editor.actions_name.mythic_wave", "Spawn Mythic Boss"), Material.WITHER_SKELETON_SKULL,
                 plugin.getLanguageManager().getString("editor.actions.mythic_wave", "MythicMobs Boss"),
                 mmDefaults, new HashMap<>());
@@ -321,6 +329,8 @@ public class DefaultRegistry {
         randomDefaults.put("locations", new ArrayList<>(Collections.singletonList("0,0,0")));
         randomDefaults.put("random_mobs", plugin.getConfigFile().getStringList("action-defaults.random_wave.random_mobs").isEmpty() ? defaultRandomMobs : plugin.getConfigFile().getStringList("action-defaults.random_wave.random_mobs"));
         randomDefaults.put("custom_drops", new ArrayList<String>());
+        randomDefaults.put("spawn_delay", plugin.getConfigFile().getInt("action-defaults.random_wave.spawn_delay", 0));
+        randomDefaults.put("spawn_radius", plugin.getConfigFile().getDouble("action-defaults.random_wave.spawn_radius", 0.0));
         randomDefaults.put("start_message", plugin.getConfigFile().getStringList("action-defaults.random_wave.start_message"));
 
         manager.registerAction("RANDOM_WAVE", map -> {
@@ -336,7 +346,9 @@ public class DefaultRegistry {
                     List<String> customDrops = new ArrayList<>();
                     if (map.get("custom_drops") instanceof List<?> l) l.forEach(o -> customDrops.add(o.toString()));
 
-                    return new RandomWaveAction(amount, v, RandomWaveAction.parseMobPool(rawStrings), scaleWithParty, customDrops);
+                    int spawnDelay = getInt(map.get("spawn_delay"), (int) randomDefaults.get("spawn_delay"));
+                    double spawnRadius = getDouble(map.get("spawn_radius"), (double) randomDefaults.get("spawn_radius"));
+                    return new RandomWaveAction(amount, v, RandomWaveAction.parseMobPool(rawStrings), scaleWithParty, customDrops, spawnDelay, spawnRadius);
                 }, plugin.getLanguageManager().getString("editor.actions_name.random_wave", "Random Mob Wave"), Material.TRIAL_SPAWNER,
                 plugin.getLanguageManager().getString("editor.actions.random_wave", "Spawn a random mix of Vanilla and Mythic mobs from a pool"),
                 randomDefaults, new HashMap<>());

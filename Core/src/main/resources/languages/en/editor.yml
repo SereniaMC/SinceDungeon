@@ -479,6 +479,15 @@ editor:
       edit_action_amount:
         - "&7Enter the amount of mobs to spawn."
         - "&7Example: &a10"
+      edit_action_spawn_delay:
+        - "&7Enter the delay in ticks between each mob spawn."
+        - "&720 ticks = 1 second. Set to &a0 &7to spawn all mobs at once."
+        - "&7Example: &a20 &8(One mob spawns per second)"
+      edit_action_spawn_radius:
+        - "&7Enter the random spread radius in blocks around the spawn point."
+        - "&7Mobs will spawn safely within this radius (walls and voids are avoided)."
+        - "&7Set to &a0 &7for the default small offset (±0.75 block)."
+        - "&7Example: &a5 &8(Mobs scatter up to 5 blocks from the spawn point)"
       edit_action_start_message:
         - "&7Enter the start message for this action (colors supported)."
         - "&7Tip: Type &cclear &7to empty the message list."

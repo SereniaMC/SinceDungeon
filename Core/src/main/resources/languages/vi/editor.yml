@@ -482,6 +482,15 @@ editor:
       edit_action_amount:
         - "&7Nhập số lượng quái vật cần sinh ra."
         - "&7Ví dụ: &a10"
+      edit_action_spawn_delay:
+        - "&7Nhập độ trễ (tính bằng tick) giữa mỗi lần sinh quái."
+        - "&720 tick = 1 giây. Nhập &a0 &7để sinh tất cả quái cùng lúc."
+        - "&7Ví dụ: &a20 &8(Sinh 1 con mỗi giây)"
+      edit_action_spawn_radius:
+        - "&7Nhập bán kính phân tán (block) quanh điểm spawn."
+        - "&7Quái sẽ tự tìm vị trí an toàn trong bán kính này (tránh tường và void)."
+        - "&7Nhập &a0 &7để dùng offset nhỏ mặc định (±0.75 block)."
+        - "&7Ví dụ: &a5 &8(Quái spawn rải rác trong vòng 5 block)"
       edit_action_start_message:
         - "&7Nhập tin nhắn thông báo khi bắt đầu nhiệm vụ (Hỗ trợ mã màu)."
         - "&7Mẹo: Gõ &cclear &7để xóa danh sách tin nhắn này."
