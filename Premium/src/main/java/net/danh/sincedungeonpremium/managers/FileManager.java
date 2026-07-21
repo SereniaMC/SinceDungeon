@@ -49,8 +49,23 @@ public class FileManager {
         }
         messages = YamlConfiguration.loadConfiguration(messagesFile);
         autoUpdate(messages, messagesFile, "messages.yml");
+
+        saveBundledSchematic("SchematicTestArena.schem");
     }
 
+    private void saveBundledSchematic(String fileName) {
+        File schematicsFolder = new File(plugin.getDataFolder(), "schematics");
+        if (!schematicsFolder.exists() && !schematicsFolder.mkdirs()) {
+            plugin.getLogger().warning("Failed to create schematics folder: " + schematicsFolder.getPath());
+            return;
+        }
+
+        String resourceName = "schematics/" + fileName;
+        File target = new File(schematicsFolder, fileName);
+        if (!target.exists() && plugin.getResource(resourceName) != null) {
+            plugin.saveResource(resourceName, false);
+        }
+    }
     /**
      * Compares the current file with the default resource inside the jar and injects missing keys.
      * Aborts immediately if the specific file contains 'auto-update: false'.

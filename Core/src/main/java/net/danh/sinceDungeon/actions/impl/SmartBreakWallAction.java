@@ -68,8 +68,6 @@ public class SmartBreakWallAction extends DungeonAction implements Tickable {
         if (!isBreaking && centerLoc.getBlock().getType() == Material.AIR) {
             isBreaking = true;
             removeWall(game);
-            this.completed = true;
-            game.sendActionMessage(this, "complete", "action.wall_break");
         }
     }
 
@@ -93,9 +91,6 @@ public class SmartBreakWallAction extends DungeonAction implements Tickable {
                 isBreaking = true;
                 b.setType(Material.AIR);
                 removeWall(game);
-
-                this.completed = true;
-                game.sendActionMessage(this, "complete", "action.wall_break");
             }
         }
     }
@@ -176,6 +171,8 @@ public class SmartBreakWallAction extends DungeonAction implements Tickable {
                             } catch (Exception ignored) {
                             }
 
+                            this.completed = true;
+                            game.sendActionMessage(this, "complete", "action.wall_break");
                             if (breakTask != null) breakTask.cancel();
                             return;
                         }

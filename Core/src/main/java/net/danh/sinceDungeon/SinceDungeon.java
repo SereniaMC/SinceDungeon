@@ -85,6 +85,7 @@ public final class SinceDungeon extends JavaPlugin {
         if (configFile == null) configFile = new ConfigManager(this);
         if (languageManager == null) setupLanguage();
         new ConfigUtils(this, "dungeons/example_dungeon.yml");
+        new ConfigUtils(this, "dungeons/schematic_test_arena.yml");
 
         rewardManager = new RewardManager(this);
         rewardManager.setRewardSystem(new DefaultRewardSystem(this));

@@ -10,6 +10,7 @@ import net.danh.sinceDungeon.utils.SchedulerCompat;
 import net.danh.sinceDungeon.utils.SoundUtils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -164,11 +165,8 @@ public class UnlockDoorAction extends DungeonAction implements Tickable {
 
                     isUnlocking = true;
                     b.setType(Material.AIR);
-                    removeWall(game);
+                    removeWall(game, p.getName());
                     removeCompasses(game);
-
-                    this.completed = true;
-                    game.sendActionMessage(this, "complete", "action.door_unlocked", "<player>", p.getName());
 
                     Location spawnLoc = game.getRespawnLocation();
                     game.getParticipants().forEach(player -> {
@@ -209,7 +207,7 @@ public class UnlockDoorAction extends DungeonAction implements Tickable {
         }
     }
 
-    private void removeWall(DungeonGame game) {
+    private void removeWall(DungeonGame game, String playerName) {
         Location cornerA = game.resolveBlockLocation(c1);
         Location cornerB = game.resolveBlockLocation(c2);
         int minX = Math.min(cornerA.getBlockX(), cornerB.getBlockX());
@@ -219,11 +217,28 @@ public class UnlockDoorAction extends DungeonAction implements Tickable {
         int minZ = Math.min(cornerA.getBlockZ(), cornerB.getBlockZ());
         int maxZ = Math.max(cornerA.getBlockZ(), cornerB.getBlockZ());
 
+        long volume = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
+        if (volume > 50000) {
+            String msg = SinceDungeon.getPlugin().getLanguageManager().getString("admin.warning.wall_too_large", "Wall volume too large (<volume> blocks). Cancelled to prevent crash!");
+            SinceDungeon.getPlugin().getLogger().severe(msg.replace("<volume>", String.valueOf(volume)));
+            this.completed = true;
+            return;
+        }
+
         String soundUnlock = SinceDungeon.getPlugin().getConfigFile().getString("sounds.door_unlock", "block.iron_door.open");
         if (soundUnlock != null) {
             game.getWorld().playSound(triggerLoc, SoundUtils.getSound(soundUnlock), 1f, 0.5f);
         }
 
+        String crumbleName = SinceDungeon.getPlugin().getConfigFile().getString("particles.wall_crumble", "BLOCK_CRUMBLE");
+        Particle crumbleParticle;
+        try {
+            crumbleParticle = Particle.valueOf(crumbleName.toUpperCase(Locale.ROOT));
+        } catch (Exception e) {
+            crumbleParticle = Particle.BLOCK_CRUMBLE;
+        }
+
+        final Particle finalCrumble = crumbleParticle;
         final Location particleLoc = new Location(game.getWorld(), 0, 0, 0);
         final int[] currentX = {minX};
         final int[] currentY = {minY};
@@ -239,8 +254,15 @@ public class UnlockDoorAction extends DungeonAction implements Tickable {
             while (blocksProcessed < 50) {
                 Block block = game.getWorld().getBlockAt(currentX[0], currentY[0], currentZ[0]);
                 if (block.getType() != Material.AIR) {
-                    particleLoc.set(currentX[0] + 0.5, currentY[0] + 0.5, currentZ[0] + 0.5);
-                    game.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, particleLoc, 5, 0.2, 0.2, 0.2, 0.05, block.getBlockData());
+                    try {
+                        particleLoc.set(currentX[0] + 0.5, currentY[0] + 0.5, currentZ[0] + 0.5);
+                        if (finalCrumble.getDataType() == BlockData.class) {
+                            game.getWorld().spawnParticle(finalCrumble, particleLoc, 5, 0.2, 0.2, 0.2, 0.05, block.getBlockData());
+                        } else {
+                            game.getWorld().spawnParticle(finalCrumble, particleLoc, 5, 0.2, 0.2, 0.2, 0.05);
+                        }
+                    } catch (Exception ignored) {
+                    }
                     block.setType(Material.AIR, false);
                 }
                 blocksProcessed++;
@@ -253,6 +275,8 @@ public class UnlockDoorAction extends DungeonAction implements Tickable {
                         currentY[0] = minY;
                         currentZ[0]++;
                         if (currentZ[0] > maxZ) {
+                            this.completed = true;
+                            game.sendActionMessage(this, "complete", "action.door_unlocked", "<player>", playerName);
                             if (breakTask != null) breakTask.cancel();
                             return;
                         }

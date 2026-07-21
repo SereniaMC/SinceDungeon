@@ -1,0 +1,149 @@
+# =============================================================
+# SINCE DUNGEON - SCHEMATIC TEST ARENA
+# Purpose: End-to-end Premium SCHEMATIC mode test map.
+# Required schematic resource:
+# plugins/SinceDungeon-PremiumAddon/schematics/SchematicTestArena.schem
+# =============================================================
+
+template-world: "SchematicTestArena"
+public: false
+
+settings:
+  start-location: "0,65,0,90,0"
+  max-players: 4
+  required-lives-to-join: 0
+  lives-deducted-per-death: 0
+  lives-deducted-on-leave: 0
+  lives-deducted-on-fail: 0
+  lives-deducted-on-clear: 0
+  keep-inventory-on-death: true
+  prevent-item-dropping: true
+  block-ender-pearls: true
+  kick-delay-after-finish: 10
+  force-daylight-and-clear-weather: true
+  save-and-restore-stats: false
+  death-action: "RESPAWN"
+  clear-mob-drops: true
+  randomize-stages: false
+  cooldown-seconds: 0
+  cooldown-on-leave: false
+  commands:
+    on-start: [ ]
+    on-finish: [ ]
+    on-first-finish: [ ]
+
+rewards:
+  solo-tiers:
+    300: 3
+    600: 2
+    1200: 1
+  party-tiers:
+    240: 3
+    500: 2
+    1000: 1
+  pool:
+    diamonds:
+      type: "ITEM"
+      value: "DIAMOND:3-6"
+      chance: 100.0
+      name: "<aqua>Schematic Test Diamonds"
+    emeralds:
+      type: "ITEM"
+      value: "EMERALD:2-4"
+      chance: 100.0
+      name: "<green>Schematic Test Emeralds"
+
+stages:
+  1:
+    chance: 100.0
+    actions:
+      entry_check:
+        type: "REACH_LOCATION"
+        target: "6,65,0"
+        radius: 2.0
+        start_message:
+          - "<yellow>SCHEMATIC TEST: walk to the yellow pad."
+  2:
+    chance: 100.0
+    actions:
+      vanilla_wave:
+        type: "SPAWN_WAVE"
+        mob: "ZOMBIE"
+        amount: 2
+        scale_with_party: true
+        custom_name: "<red>Schematic Test Zombie"
+        attributes:
+          - "max_health:12.0"
+          - "movement_speed:0.25"
+        equipment:
+          - "helmet:LEATHER_HELMET:1"
+          - "mainhand:WOODEN_SWORD:1"
+        locations:
+          - "16,65,-2"
+          - "16,65,2"
+        spawn_delay: 10
+        spawn_radius: 1.5
+        start_message:
+          - "<red>SCHEMATIC TEST: kill the vanilla wave."
+  3:
+    chance: 100.0
+    actions:
+      key_chest:
+        type: "LOOT_CHEST"
+        location: "28,65,0"
+        per_player: false
+        required_key: "NONE"
+        items:
+          13: "KEY:test_gate:1"
+          14: "BREAD:4"
+        start_message:
+          - "<gold>SCHEMATIC TEST: empty the chest and keep the key."
+      gate:
+        type: "UNLOCK_DOOR"
+        key_id: "test_gate"
+        trigger: "38,65,0"
+        corner1: "38,65,-5"
+        corner2: "38,68,5"
+        particle: "ENCHANT"
+        start_message:
+          - "<green>SCHEMATIC TEST: right-click the lapis block in the gate with the key."
+  4:
+    chance: 100.0
+    actions:
+      hold_zone:
+        type: "CONTROL_ZONE"
+        center: "48,65,0"
+        start_radius: 4.0
+        end_radius: 2.0
+        required_time: 5
+        mob: "NONE"
+        start_message:
+          - "<aqua>SCHEMATIC TEST: stand on the gold pad until it completes."
+  5:
+    chance: 100.0
+    actions:
+      vanilla_boss:
+        type: "BOSS_BATTLE"
+        location: "58,65,0"
+        mob: "ZOMBIE"
+        custom_name: "<dark_red><bold>Schematic Test Boss"
+        base_health: 35.0
+        scale_health_per_player: 15.0
+        bar_color: "RED"
+        bar_style: "SOLID"
+        attributes:
+          - "movement_speed:0.22"
+          - "attack_damage:4.0"
+        equipment:
+          - "helmet:IRON_HELMET:1"
+          - "chestplate:IRON_CHESTPLATE:1"
+          - "mainhand:STONE_AXE:1"
+        enrage_time: 20
+        enrage_message: "<red>SCHEMATIC TEST: boss enraged."
+        enrage_attributes:
+          - "movement_speed:0.32"
+          - "attack_damage:6.0"
+        custom_drops:
+          - "GOLD_INGOT:2;100"
+        start_message:
+          - "<dark_red>SCHEMATIC TEST: defeat the vanilla boss."
