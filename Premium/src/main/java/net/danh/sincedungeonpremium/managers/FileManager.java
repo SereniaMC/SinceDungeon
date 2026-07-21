@@ -66,6 +66,7 @@ public class FileManager {
             plugin.saveResource(resourceName, false);
         }
     }
+
     /**
      * Compares the current file with the default resource inside the jar and injects missing keys.
      * Aborts immediately if the specific file contains 'auto-update: false'.

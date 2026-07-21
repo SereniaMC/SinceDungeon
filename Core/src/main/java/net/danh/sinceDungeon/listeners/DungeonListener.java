@@ -26,9 +26,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.permissions.PermissionAttachment;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -313,7 +311,6 @@ public class DungeonListener implements Listener {
             World ghostWorld = p.getLocation().getWorld();
             String logMsg = plugin.getLanguageManager().getString("admin.log.rescuing_ghost", "Rescuing ghosted player <player> from deleted instance.");
             plugin.getLogger().warning(logMsg.replace("<player>", p.getName()));
-
 
 
             p.teleportAsync(Bukkit.getWorlds().get(0).getSpawnLocation()).thenAccept(success -> {
@@ -667,15 +664,6 @@ public class DungeonListener implements Listener {
         p.setGameMode(GameMode.SURVIVAL);
     }
 
-    private enum PendingDeathAction {
-        RESPAWN,
-        SPECTATE,
-        FAIL,
-        OUT_OF_LIVES_SPECTATE,
-        OUT_OF_LIVES_FAIL,
-        OUT_OF_LIVES_KICK
-    }
-
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent e) {
         Player p = e.getPlayer();
@@ -762,5 +750,14 @@ public class DungeonListener implements Listener {
                 game.onEvent(e);
             }
         }
+    }
+
+    private enum PendingDeathAction {
+        RESPAWN,
+        SPECTATE,
+        FAIL,
+        OUT_OF_LIVES_SPECTATE,
+        OUT_OF_LIVES_FAIL,
+        OUT_OF_LIVES_KICK
     }
 }

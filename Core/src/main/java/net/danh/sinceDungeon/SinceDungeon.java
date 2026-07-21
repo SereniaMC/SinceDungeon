@@ -177,17 +177,17 @@ public final class SinceDungeon extends JavaPlugin {
         }, Math.max(1L, timeoutSeconds * 20L));
 
         startupTask.whenComplete((ignored, throwable) -> SchedulerCompat.runGlobal(this, () -> {
-                    if (throwable != null) {
-                        String msg = languageManager.getString("admin.log.startup_failed", "[Startup] SinceDungeon startup failed: <error>");
-                        String error = throwable.getMessage() == null ? throwable.getClass().getSimpleName() : throwable.getMessage();
-                        getLogger().severe(msg.replace("<error>", error));
-                        getServer().getPluginManager().disablePlugin(this);
-                        return;
-                    }
+            if (throwable != null) {
+                String msg = languageManager.getString("admin.log.startup_failed", "[Startup] SinceDungeon startup failed: <error>");
+                String error = throwable.getMessage() == null ? throwable.getClass().getSimpleName() : throwable.getMessage();
+                getLogger().severe(msg.replace("<error>", error));
+                getServer().getPluginManager().disablePlugin(this);
+                return;
+            }
 
-                    startupReady = true;
-                    getLogger().info(languageManager.getString("admin.log.startup_ready", "[Startup] SinceDungeon finished loading data."));
-                }));
+            startupReady = true;
+            getLogger().info(languageManager.getString("admin.log.startup_ready", "[Startup] SinceDungeon finished loading data."));
+        }));
     }
 
     private CompletableFuture<Collection<UUID>> snapshotOnlinePlayerIds() {

@@ -181,10 +181,14 @@ public class HologramManager {
         lines.add(plugin.getFileManager().getMessageRaw("holograms.map_line").replace("<map>", mapId));
 
         String catName = switch (category) {
-            case FASTEST_TIME -> SinceDungeon.getPlugin().getLanguageManager().getString("top.category_time", "Solo Fastest Clears");
-            case PARTY_FASTEST_TIME -> SinceDungeon.getPlugin().getLanguageManager().getString("top.category_party_time", "Party Fastest Clears");
-            case MOST_KILLS -> SinceDungeon.getPlugin().getLanguageManager().getString("top.category_kills", "Most Kills");
-            case MOST_CLEARS -> SinceDungeon.getPlugin().getLanguageManager().getString("top.category_clears", "Most Clears");
+            case FASTEST_TIME ->
+                    SinceDungeon.getPlugin().getLanguageManager().getString("top.category_time", "Solo Fastest Clears");
+            case PARTY_FASTEST_TIME ->
+                    SinceDungeon.getPlugin().getLanguageManager().getString("top.category_party_time", "Party Fastest Clears");
+            case MOST_KILLS ->
+                    SinceDungeon.getPlugin().getLanguageManager().getString("top.category_kills", "Most Kills");
+            case MOST_CLEARS ->
+                    SinceDungeon.getPlugin().getLanguageManager().getString("top.category_clears", "Most Clears");
         };
 
         lines.add(plugin.getFileManager().getMessageRaw("holograms.category_line").replace("<category>", catName));

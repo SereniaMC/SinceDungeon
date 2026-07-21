@@ -60,13 +60,13 @@ world.
 
 ## Common Tasks
 
-| Task | Page |
-|------|------|
-| Install Core and Premium | [Getting Started](getting-started.md) |
-| Set command aliases, database, worlds, and lives | [Configuration](configuration.md) |
-| Create a dungeon YAML file | [Dungeon Files](dungeon-files.md) |
-| Add combat, doors, chests, bosses, and traps | [Actions](actions.md) |
-| Copy a complete dungeon YAML example | [Example Dungeon](example-dungeon.md) |
-| Create a schematic dungeon correctly | [Schematic Setup](folia-schematic.md) |
-| Configure roulette, affixes, webhooks, and holograms | [Premium Addon](premium.md) |
-| Use API events or custom providers | [Developer API](developer-api.md) |
+| Task                                                 | Page                                  |
+|------------------------------------------------------|---------------------------------------|
+| Install Core and Premium                             | [Getting Started](getting-started.md) |
+| Set command aliases, database, worlds, and lives     | [Configuration](configuration.md)     |
+| Create a dungeon YAML file                           | [Dungeon Files](dungeon-files.md)     |
+| Add combat, doors, chests, bosses, and traps         | [Actions](actions.md)                 |
+| Copy a complete dungeon YAML example                 | [Example Dungeon](example-dungeon.md) |
+| Create a schematic dungeon correctly                 | [Schematic Setup](folia-schematic.md) |
+| Configure roulette, affixes, webhooks, and holograms | [Premium Addon](premium.md)           |
+| Use API events or custom providers                   | [Developer API](developer-api.md)     |

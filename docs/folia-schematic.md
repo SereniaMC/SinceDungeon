@@ -53,7 +53,8 @@ When saving the schematic with WorldEdit, stand at the local origin before `//co
 ```
 
 If you copy while standing somewhere else, WorldEdit stores a different clipboard offset. SinceDungeon will still paste
-the schematic at `paste-y-level`, but mobs, chests, doors, triggers, checkpoints, and spawn locations can become shifted.
+the schematic at `paste-y-level`, but mobs, chests, doors, triggers, checkpoints, and spawn locations can become
+shifted.
 
 ## File Naming
 
@@ -113,17 +114,17 @@ instancing:
 
 Important fields:
 
-| Field | Meaning |
-|-------|---------|
-| `mode` | Must be `SCHEMATIC` to use Premium schematic instancing. |
-| `paste-y-level` | Y level where the schematic clipboard origin is pasted. |
-| `paste-air` | If `true`, air blocks in the schematic overwrite previous blocks. |
-| `shared-world.name` | Shared schematic world name. Paper can create it at runtime; Folia must preload it before plugin startup. |
-| `spawn-location` | Default local entry location if the dungeon YAML has `start-location: "NONE"`. |
-| `coordinate-y-offset` | Extra Y offset added to YAML coordinates. Keep `0` for normal setup. |
-| `region-spacing` | Distance between allocated dungeon regions. |
-| `region-radius` | Half-size owned by each dungeon run for routing and cleanup. |
-| `clear-on-release` | Clears the region after a dungeon run ends. |
+| Field                 | Meaning                                                                                                   |
+|-----------------------|-----------------------------------------------------------------------------------------------------------|
+| `mode`                | Must be `SCHEMATIC` to use Premium schematic instancing.                                                  |
+| `paste-y-level`       | Y level where the schematic clipboard origin is pasted.                                                   |
+| `paste-air`           | If `true`, air blocks in the schematic overwrite previous blocks.                                         |
+| `shared-world.name`   | Shared schematic world name. Paper can create it at runtime; Folia must preload it before plugin startup. |
+| `spawn-location`      | Default local entry location if the dungeon YAML has `start-location: "NONE"`.                            |
+| `coordinate-y-offset` | Extra Y offset added to YAML coordinates. Keep `0` for normal setup.                                      |
+| `region-spacing`      | Distance between allocated dungeon regions.                                                               |
+| `region-radius`       | Half-size owned by each dungeon run for routing and cleanup.                                              |
+| `clear-on-release`    | Clears the region after a dungeon run ends.                                                               |
 
 ## Folia Requirement
 

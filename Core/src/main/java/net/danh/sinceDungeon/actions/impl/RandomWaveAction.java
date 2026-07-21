@@ -38,8 +38,6 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
     private int tickCounter = 0;
     private int nextSpawnAt = 0;
 
-    private record PendingSpawn(Location loc, MobOption opt) {}
-
     public RandomWaveAction(int amount, List<Vector> locations, List<MobOption> mobPool, boolean scaleWithParty, List<String> customDrops) {
         this(amount, locations, mobPool, scaleWithParty, customDrops, 0, 0.0);
     }
@@ -318,6 +316,9 @@ public class RandomWaveAction extends DungeonAction implements Tickable {
             } catch (Exception ignored) {
             }
         }
+    }
+
+    private record PendingSpawn(Location loc, MobOption opt) {
     }
 
     public record MobOption(boolean isMythic, String id, int level, double weight) {
