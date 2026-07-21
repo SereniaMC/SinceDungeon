@@ -22,10 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Advanced ItemBuilder utility using the Builder Pattern.
@@ -179,6 +176,51 @@ public class ItemBuilder {
         return null;
     }
 
+
+    /**
+     * Parses either the legacy string format or a full Bukkit-serialized ItemStack.
+     * Full ItemStack snapshots preserve metadata/PDC from third-party item plugins.
+     */
+    public static ItemStack parseDynamicItem(Object data) {
+        if (data == null) return null;
+
+        if (data instanceof ItemStack item) {
+            return item.clone();
+        }
+
+        if (data instanceof ConfigurationSection section) {
+            ItemStack nestedItem = section.getItemStack("item");
+            if (nestedItem != null) return nestedItem.clone();
+
+            try {
+                return ItemStack.deserialize(section.getValues(false));
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (data instanceof Map<?, ?> rawMap) {
+            Object nestedItem = rawMap.get("item");
+            if (nestedItem != null) return parseDynamicItem(nestedItem);
+
+            Map<String, Object> serialized = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                if (entry.getKey() != null) {
+                    serialized.put(entry.getKey().toString(), entry.getValue());
+                }
+            }
+
+            try {
+                return ItemStack.deserialize(serialized);
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (data instanceof String text) {
+            return parseDynamicItem(text);
+        }
+
+        return parseDynamicItem(data.toString());
+    }
     public ItemBuilder amount(int amount) {
         this.item.setAmount(amount);
         return this;

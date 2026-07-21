@@ -1199,35 +1199,10 @@ public class EditorMenuListener implements Listener {
 
                 Inventory inv = e.getView().getTopInventory();
 
-                NamespacedKey keyTag = new NamespacedKey(plugin, "dungeon_key_id");
-                NamespacedKey lifeKey = new NamespacedKey(plugin, "life_amount");
-                NamespacedKey resetKey = new NamespacedKey(plugin, "cooldown_reset");
-                NamespacedKey reduceKey = new NamespacedKey(plugin, "cooldown_reduce");
-
                 for (int i = 0; i < inv.getSize(); i++) {
                     ItemStack item = inv.getItem(i);
                     if (item != null && !item.getType().isAir()) {
-                        String itemStr = null;
-
-                        if (ItemBuilder.hasTag(item, keyTag, PersistentDataType.STRING)) {
-                            String keyId = ItemBuilder.getTag(item, keyTag, PersistentDataType.STRING);
-                            itemStr = "KEY:" + keyId + ":" + item.getAmount();
-                        } else if (ItemBuilder.hasTag(item, lifeKey, PersistentDataType.INTEGER)) {
-                            itemStr = "LIFE_ITEM:" + item.getAmount();
-                        } else if (ItemBuilder.hasTag(item, resetKey, PersistentDataType.BYTE)) {
-                            itemStr = "COOLDOWN_RESET:" + item.getAmount();
-                        } else if (ItemBuilder.hasTag(item, reduceKey, PersistentDataType.INTEGER)) {
-                            int secs = ItemBuilder.getTag(item, reduceKey, PersistentDataType.INTEGER);
-                            itemStr = "COOLDOWN_REDUCE:" + secs + ":" + item.getAmount();
-                        } else if (Bukkit.getPluginManager().isPluginEnabled("MMOItems")) {
-                            itemStr = MMOItemsHook.getMMOItemString(item);
-                        }
-
-                        if (itemStr == null) {
-                            itemStr = item.getType().name() + ":" + item.getAmount();
-                        }
-
-                        session.getConfig().set(path + "." + i, itemStr);
+                        session.getConfig().set(path + "." + i, item.clone());
                     }
                 }
 

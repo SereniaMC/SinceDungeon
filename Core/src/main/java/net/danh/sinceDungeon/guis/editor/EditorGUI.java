@@ -650,9 +650,8 @@ public class EditorGUI {
             for (String slotKey : sec.getKeys(false)) {
                 try {
                     int slot = Integer.parseInt(slotKey);
-                    if (slot >= 0 && slot < 54) {
-                        String itemStr = sec.getString(slotKey);
-                        ItemStack is = ItemBuilder.parseDynamicItem(itemStr);
+                    if (slot >= 0 && slot < inv.getSize()) {
+                        ItemStack is = ItemBuilder.parseDynamicItem(sec.get(slotKey));
                         if (is != null) {
                             inv.setItem(slot, is);
                         }

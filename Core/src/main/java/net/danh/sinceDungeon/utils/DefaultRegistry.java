@@ -243,7 +243,7 @@ public class DefaultRegistry {
         chestDefaults.put("required_key", "NONE"); // Defined required key default
         chestDefaults.put("time_limit", plugin.getConfigFile().getInt("action-defaults.loot_chest.time_limit", -1));
         chestDefaults.put("time_penalty", plugin.getConfigFile().getInt("action-defaults.loot_chest.time_penalty", 1));
-        chestDefaults.put("items", new HashMap<String, String>());
+        chestDefaults.put("items", new HashMap<String, Object>());
         chestDefaults.put("start_message", plugin.getConfigFile().getStringList("action-defaults.loot_chest.start_message"));
 
         manager.registerAction("LOOT_CHEST", map -> {
@@ -251,20 +251,20 @@ public class DefaultRegistry {
                     boolean perPlayer = map.containsKey("per_player") ? Boolean.parseBoolean(map.get("per_player").toString()) : false;
                     String requiredKey = String.valueOf(map.getOrDefault("required_key", "NONE"));
 
-                    Map<Integer, String> itemsConfig = new HashMap<>();
+                    Map<Integer, Object> itemsConfig = new HashMap<>();
                     Object itemsObj = map.get("items");
 
                     if (itemsObj instanceof ConfigurationSection section) {
                         for (String key : section.getKeys(false)) {
                             try {
-                                itemsConfig.put(Integer.parseInt(key), section.getString(key));
+                                itemsConfig.put(Integer.parseInt(key), section.get(key));
                             } catch (Exception ignored) {
                             }
                         }
                     } else if (itemsObj instanceof Map m) {
                         for (Object rawKey : m.keySet()) {
                             try {
-                                itemsConfig.put(Integer.parseInt(rawKey.toString()), m.get(rawKey).toString());
+                                itemsConfig.put(Integer.parseInt(rawKey.toString()), m.get(rawKey));
                             } catch (Exception ignored) {
                             }
                         }

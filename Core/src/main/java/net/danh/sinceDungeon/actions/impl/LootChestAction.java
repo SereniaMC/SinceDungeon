@@ -31,7 +31,7 @@ import java.util.*;
  */
 public class LootChestAction extends DungeonAction implements Tickable {
     private final Vector chestLocation;
-    private final Map<Integer, String> itemsConfig;
+    private final Map<Integer, Object> itemsConfig;
     private final boolean perPlayer;
     private final String requiredKey;
 
@@ -41,7 +41,7 @@ public class LootChestAction extends DungeonAction implements Tickable {
     private boolean isOpened = false;
     private Block chestBlock = null;
 
-    public LootChestAction(Vector location, Map<Integer, String> itemsConfig, boolean perPlayer, String requiredKey) {
+    public LootChestAction(Vector location, Map<Integer, Object> itemsConfig, boolean perPlayer, String requiredKey) {
         this.chestLocation = location;
         this.itemsConfig = itemsConfig;
         this.perPlayer = perPlayer;
@@ -78,11 +78,11 @@ public class LootChestAction extends DungeonAction implements Tickable {
                 Inventory inv = chest.getBlockInventory();
                 inv.clear();
 
-                for (Map.Entry<Integer, String> entry : itemsConfig.entrySet()) {
+                for (Map.Entry<Integer, Object> entry : itemsConfig.entrySet()) {
                     if (isValidSlot(entry.getKey(), inv)) {
                         ItemStack is = ItemBuilder.parseDynamicItem(entry.getValue());
                         if (is != null) {
-                            inv.setItem(entry.getKey(), is);
+                            inv.setItem(entry.getKey(), is.clone());
                         }
                     }
                 }
@@ -133,11 +133,11 @@ public class LootChestAction extends DungeonAction implements Tickable {
         String title = SinceDungeon.getPlugin().getLanguageManager().getString("objective.loot_chest_title", "Treasure Chest");
         Inventory inv = Bukkit.createInventory(new VirtualLootHolder(), 27, ColorUtils.parse(title));
 
-        for (Map.Entry<Integer, String> entry : itemsConfig.entrySet()) {
+        for (Map.Entry<Integer, Object> entry : itemsConfig.entrySet()) {
             if (isValidSlot(entry.getKey(), inv)) {
                 ItemStack is = ItemBuilder.parseDynamicItem(entry.getValue());
                 if (is != null) {
-                    inv.setItem(entry.getKey(), is);
+                    inv.setItem(entry.getKey(), is.clone());
                 }
             }
         }
