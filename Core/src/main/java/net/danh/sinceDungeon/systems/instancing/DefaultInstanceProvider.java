@@ -93,12 +93,7 @@ public class DefaultInstanceProvider implements InstanceProvider {
                     }
                 }
 
-                File target;
-                if (source.getParentFile() != null && source.getParentFile().getName().equals("minecraft") && source.getParentFile().getParentFile().getName().equals("dimensions")) {
-                    target = new File(source.getParentFile(), instanceId);
-                } else {
-                    target = new File(Bukkit.getWorldContainer(), instanceId);
-                }
+                File target = new File(Bukkit.getWorldContainer(), instanceId);
 
                 if (!source.exists()) {
                     throw new RuntimeException("Template world folder not found: " + templateName + " (looked at " + source.getPath() + ")");

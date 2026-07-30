@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- Fixed a critical bug in Paper 1.20+ where joining a dungeon would spawn players in a randomly generated world instead of the dungeon template (caused by incorrect instance folder targeting).
 - Enforced private dungeon visibility: regular members cannot join `public: false` dungeons, while admins can
   tab-complete and join them for testing.
 - Routed command rewards through `SchedulerCompat` so reward command execution no longer calls the Bukkit scheduler
