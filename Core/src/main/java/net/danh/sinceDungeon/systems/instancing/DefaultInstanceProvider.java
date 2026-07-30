@@ -82,11 +82,26 @@ public class DefaultInstanceProvider implements InstanceProvider {
     private void executeAsyncCopyAndLoad(String templateName, String instanceId, CompletableFuture<World> finalFuture, World templateW) {
         SchedulerCompat.runAsync(plugin, () -> {
             try {
-                File source = new File(Bukkit.getWorldContainer(), templateName);
-                File target = new File(Bukkit.getWorldContainer(), instanceId);
+                File source;
+                if (templateW != null) {
+                    source = templateW.getWorldFolder();
+                } else {
+                    source = new File(Bukkit.getWorldContainer(), templateName);
+                    File altSource = new File(new File(Bukkit.getWorldContainer(), "world/dimensions/minecraft"), templateName);
+                    if (!source.exists() && altSource.exists()) {
+                        source = altSource;
+                    }
+                }
+
+                File target;
+                if (source.getParentFile() != null && source.getParentFile().getName().equals("minecraft") && source.getParentFile().getParentFile().getName().equals("dimensions")) {
+                    target = new File(source.getParentFile(), instanceId);
+                } else {
+                    target = new File(Bukkit.getWorldContainer(), instanceId);
+                }
 
                 if (!source.exists()) {
-                    throw new RuntimeException("Template world folder not found: " + templateName);
+                    throw new RuntimeException("Template world folder not found: " + templateName + " (looked at " + source.getPath() + ")");
                 }
 
                 boolean copied = WorldUtils.copyWorld(source, target);

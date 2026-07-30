@@ -210,6 +210,12 @@ public class SchematicInstanceProvider implements InstanceProvider {
                 throw new IllegalStateException(errorMsg);
             }
             sharedWorld = world;
+            
+            File folder = sharedWorld.getWorldFolder();
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+
             configureWorld(sharedWorld);
             String logMsg = plugin.getFileManager().getMessageRaw("log.shared_world_ready");
             plugin.getLogger().info(logMsg.replace("<world>", sharedWorld.getName()));
