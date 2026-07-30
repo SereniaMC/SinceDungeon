@@ -102,6 +102,10 @@ settings:
   # Whether to delete all living mobs spawned by an action once that action is completed
   clear-remaining-mobs-on-action-complete: true
 
+  # If true, default template files (e.g., example_dungeon.yml) will be regenerated if missing.
+  # If false, they will only be generated on fresh installs and won't reappear if you delete them.
+  regenerate-default-templates: false
+
 
 # =========================================================
 # [STARTUP PERFORMANCE]

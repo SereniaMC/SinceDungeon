@@ -106,7 +106,7 @@ public class DefaultInstanceProvider implements InstanceProvider {
 
                 new File(target, "uid.dat").delete();
 
-                SchedulerCompat.createWorld(plugin, createWorldCreator(instanceId)).whenComplete((world, throwable) -> SchedulerCompat.runGlobal(plugin, () -> {
+                SchedulerCompat.createWorld(plugin, createWorldCreator(instanceId, templateW)).whenComplete((world, throwable) -> SchedulerCompat.runGlobal(plugin, () -> {
                     try {
                         if (throwable != null) {
                             finalFuture.completeExceptionally(throwable);
@@ -204,8 +204,11 @@ public class DefaultInstanceProvider implements InstanceProvider {
         });
     }
 
-    private WorldCreator createWorldCreator(String instanceId) {
+    private WorldCreator createWorldCreator(String instanceId, World templateW) {
         WorldCreator creator = new WorldCreator(instanceId);
+        if (templateW != null) {
+            creator.copy(templateW);
+        }
         creator.generatorSettings(plugin.getConfigFile().getString("dungeon.world-generator-settings", ""));
         creator.generateStructures(plugin.getConfigFile().getBoolean("dungeon.generate-structures", false));
         return creator;

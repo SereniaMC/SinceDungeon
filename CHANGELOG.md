@@ -25,6 +25,7 @@
 
 ### Added
 
+- Added `settings.regenerate-default-templates` option in `config.yml` (default `false`). Setting this to false stops the plugin from automatically re-creating default template files (e.g. `example_dungeon.yml`) when server owners delete them.
 - Added API overload `joinDungeon(Player, String, boolean)` for controlled private dungeon joins by integrations.
 - Documented Premium schematic shared-world setup for Paper and Folia.
 - Documented Premium `NPC_INTERACTION` action.

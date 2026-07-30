@@ -82,7 +82,7 @@ public class WorldManager {
 
                 new File(target, "uid.dat").delete();
 
-                SchedulerCompat.createWorld(plugin, createWorldCreator(plugin, instanceId)).whenComplete((world, throwable) -> SchedulerCompat.runGlobal(plugin, () -> {
+                SchedulerCompat.createWorld(plugin, createWorldCreator(plugin, instanceId, templateW)).whenComplete((world, throwable) -> SchedulerCompat.runGlobal(plugin, () -> {
                     try {
                         if (throwable != null) {
                             finalFuture.completeExceptionally(throwable);
@@ -201,8 +201,11 @@ public class WorldManager {
         });
     }
 
-    private static WorldCreator createWorldCreator(SinceDungeon plugin, String instanceId) {
+    private static WorldCreator createWorldCreator(SinceDungeon plugin, String instanceId, World templateW) {
         WorldCreator creator = new WorldCreator(instanceId);
+        if (templateW != null) {
+            creator.copy(templateW);
+        }
         creator.generatorSettings(plugin.getConfigFile().getString("dungeon.world-generator-settings", ""));
         creator.generateStructures(plugin.getConfigFile().getBoolean("dungeon.generate-structures", false));
         return creator;
