@@ -133,9 +133,8 @@ Check:
 ## Folia Dungeon Instances Fail to Create
 
 Folia cannot create or load Bukkit worlds at runtime. Use Premium `SCHEMATIC` mode and preload the configured shared
-world before the plugin starts.
-Core validates template-world copy dungeons during load, editor save, and join; unsupported Folia setups are blocked
-before the plugin tries to create a runtime world.
+world before the plugin starts. Core validates template-world copy dungeons during load, editor save, and join;
+unsupported Folia setups are blocked before the plugin tries to create a runtime world.
 
 ## Schematic Dungeon Is Empty
 

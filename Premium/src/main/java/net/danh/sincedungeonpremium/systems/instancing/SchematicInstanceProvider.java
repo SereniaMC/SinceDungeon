@@ -210,7 +210,7 @@ public class SchematicInstanceProvider implements InstanceProvider {
                 throw new IllegalStateException(errorMsg);
             }
             sharedWorld = world;
-            
+
             File folder = sharedWorld.getWorldFolder();
             if (!folder.exists()) {
                 folder.mkdirs();

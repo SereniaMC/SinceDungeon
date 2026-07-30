@@ -221,6 +221,7 @@ public class ItemBuilder {
 
         return parseDynamicItem(data.toString());
     }
+
     public ItemBuilder amount(int amount) {
         this.item.setAmount(amount);
         return this;

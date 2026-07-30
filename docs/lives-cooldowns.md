@@ -39,9 +39,9 @@ settings:
   lives-deducted-on-clear: 0
 ```
 
-`lives-deducted-per-death` is charged for each death during the run. The outcome settings are charged when that
-outcome happens: leave/disconnect before clear, dungeon failure, or dungeon clear. They stack with any per-death losses
-already taken, and `0` disables that specific outcome cost.
+`lives-deducted-per-death` is charged for each death during the run. The outcome settings are charged when that outcome
+happens: leave/disconnect before clear, dungeon failure, or dungeon clear. They stack with any per-death losses already
+taken, and `0` disables that specific outcome cost.
 
 ## Out of Lives
 
