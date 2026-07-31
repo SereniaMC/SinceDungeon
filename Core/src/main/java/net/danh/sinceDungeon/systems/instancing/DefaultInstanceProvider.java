@@ -86,14 +86,10 @@ public class DefaultInstanceProvider implements InstanceProvider {
                 if (templateW != null) {
                     source = templateW.getWorldFolder();
                 } else {
-                    source = new File(Bukkit.getWorldContainer(), templateName);
-                    File altSource = new File(new File(Bukkit.getWorldContainer(), "world/dimensions/minecraft"), templateName);
-                    if (!source.exists() && altSource.exists()) {
-                        source = altSource;
-                    }
+                    source = WorldUtils.getTemplateFolder(templateName);
                 }
 
-                File target = new File(Bukkit.getWorldContainer(), instanceId);
+                File target = WorldUtils.getTargetFolder(instanceId);
 
                 if (!source.exists()) {
                     throw new RuntimeException("Template world folder not found: " + templateName + " (looked at " + source.getPath() + ")");
@@ -105,6 +101,8 @@ public class DefaultInstanceProvider implements InstanceProvider {
                 }
 
                 new File(target, "uid.dat").delete();
+                
+                WorldUtils.ensureLevelDat(target);
 
                 SchedulerCompat.createWorld(plugin, createWorldCreator(instanceId, templateW)).whenComplete((world, throwable) -> SchedulerCompat.runGlobal(plugin, () -> {
                     try {

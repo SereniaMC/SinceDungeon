@@ -18,7 +18,7 @@ import java.util.logging.Level;
 public class WorldUtils {
 
     private static final ArrayList<String> IGNORE_FILES = new ArrayList<>(Arrays.asList(
-            "uid.dat", "session.lock", "playerdata", "stats", "advancements", "poi", "entities", "datapacks"
+            "uid.dat", "session.lock", "playerdata", "stats", "advancements", "poi", "entities", "datapacks", "metadata.dat"
     ));
 
     /**
@@ -107,5 +107,75 @@ public class WorldUtils {
             }
         }
         return !path.exists();
+    }
+
+    /**
+     * Resolves the world template folder. Checks the root container first, then searches within world/dimensions.
+     */
+    public static File getTemplateFolder(String templateName) {
+        File container = org.bukkit.Bukkit.getWorldContainer();
+        File defaultSource = new File(container, templateName);
+        if (defaultSource.exists() && defaultSource.isDirectory()) {
+            return defaultSource;
+        }
+
+        File dimensionsFolder = new File(container, "world/dimensions");
+        if (dimensionsFolder.exists() && dimensionsFolder.isDirectory()) {
+            File[] namespaces = dimensionsFolder.listFiles(File::isDirectory);
+            if (namespaces != null) {
+                for (File namespace : namespaces) {
+                    File potentialWorld = new File(namespace, templateName);
+                    if (potentialWorld.exists() && potentialWorld.isDirectory()) {
+                        return potentialWorld;
+                    }
+                }
+            }
+        }
+        return defaultSource;
+    }
+
+    /**
+     * Resolves the correct target folder for a new world.
+     * Paper 1.20+ with Vanilla world layout places new worlds in world/dimensions/minecraft/
+     */
+    public static File getTargetFolder(String instanceId) {
+        try {
+            // Paper 1.20.6+ (v26.1+) API to get the correct level directory
+            java.lang.reflect.Method getLevelDirectory = org.bukkit.Server.class.getMethod("getLevelDirectory");
+            java.nio.file.Path levelDir = (java.nio.file.Path) getLevelDirectory.invoke(org.bukkit.Bukkit.getServer());
+            File dimensions = new File(levelDir.toFile(), "dimensions");
+            // Default namespace for Bukkit worlds is usually 'minecraft' unless specified
+            return new File(new File(dimensions, "minecraft"), instanceId);
+        } catch (Exception e) {
+            // Fallback to Spigot / Older versions
+            File mainWorldFolder = org.bukkit.Bukkit.getWorlds().get(0).getWorldFolder();
+            File mcDimensions = new File(new File(mainWorldFolder, "dimensions"), "minecraft");
+            
+            // Check heuristic if Vanilla World Layout is somehow active
+            if (new File(mainWorldFolder, "dimensions").exists()) {
+                return new File(mcDimensions, instanceId);
+            }
+            
+            return new File(org.bukkit.Bukkit.getWorldContainer(), instanceId);
+        }
+    }
+
+    /**
+     * Ensures that the target world folder has a level.dat file.
+     * Sub-dimensions in Vanilla do not have their own level.dat. If missing, we copy it from the main world
+     * so Bukkit recognizes it as a valid world instead of generating a completely new one.
+     */
+    public static void ensureLevelDat(File targetWorldFolder) {
+        File levelDat = new File(targetWorldFolder, "level.dat");
+        if (!levelDat.exists()) {
+            File mainLevelDat = new File(org.bukkit.Bukkit.getWorlds().get(0).getWorldFolder(), "level.dat");
+            if (mainLevelDat.exists()) {
+                try {
+                    Files.copy(mainLevelDat.toPath(), levelDat.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    SinceDungeon.getPlugin().getLogger().warning("Could not copy level.dat to instance: " + e.getMessage());
+                }
+            }
+        }
     }
 }

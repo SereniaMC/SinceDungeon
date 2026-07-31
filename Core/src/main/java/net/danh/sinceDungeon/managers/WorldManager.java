@@ -66,8 +66,8 @@ public class WorldManager {
     private static void executeAsyncCopyAndLoad(SinceDungeon plugin, String templateName, String instanceId, CompletableFuture<World> finalFuture, World templateW) {
         SchedulerCompat.runAsync(plugin, () -> {
             try {
-                File source = new File(Bukkit.getWorldContainer(), templateName);
-                File target = new File(Bukkit.getWorldContainer(), instanceId);
+                File source = WorldUtils.getTemplateFolder(templateName);
+                File target = WorldUtils.getTargetFolder(instanceId);
 
                 if (!source.exists()) {
                     String errorMsg = plugin.getLanguageManager().getString("error.template_not_found", "Template world folder not found: <template>").replace("<template>", templateName);
@@ -81,6 +81,8 @@ public class WorldManager {
                 }
 
                 new File(target, "uid.dat").delete();
+                
+                WorldUtils.ensureLevelDat(target);
 
                 SchedulerCompat.createWorld(plugin, createWorldCreator(plugin, instanceId, templateW)).whenComplete((world, throwable) -> SchedulerCompat.runGlobal(plugin, () -> {
                     try {
