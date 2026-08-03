@@ -715,8 +715,11 @@ public class EditorMenuListener implements Listener {
                         }
                         session.getConfig().set(path + ".type", "MMOITEM");
                     } else {
-                        val = hand.getType().name() + ":" + hand.getAmount();
                         session.getConfig().set(path + ".type", "ITEM");
+                        session.getConfig().set(path + ".value", hand.clone());
+                        gui.sendMessage(p, "item_set_hand", "<item>", "Custom Item");
+                        gui.openRewardEditor(p, session);
+                        return;
                     }
 
                     session.getConfig().set(path + ".value", val);

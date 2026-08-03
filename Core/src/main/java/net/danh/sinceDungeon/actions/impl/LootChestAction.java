@@ -10,7 +10,7 @@ import net.danh.sinceDungeon.utils.SchedulerCompat;
 import net.danh.sinceDungeon.utils.SoundUtils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
+import org.bukkit.block.Container;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -69,13 +69,15 @@ public class LootChestAction extends DungeonAction implements Tickable {
         if (game.getWorld() == null) return;
         Location loc = game.resolveBlockLocation(chestLocation);
         Block b = loc.getBlock();
-        b.setType(Material.CHEST);
-        b.getState().update(true, false);
+        if (!(b.getState() instanceof Container)) {
+            b.setType(Material.CHEST);
+            b.getState().update(true, false);
+        }
         this.chestBlock = b;
 
         if (!perPlayer) {
-            if (b.getState() instanceof Chest chest) {
-                Inventory inv = chest.getBlockInventory();
+            if (b.getState() instanceof Container container) {
+                Inventory inv = container.getInventory();
                 inv.clear();
 
                 for (Map.Entry<Integer, Object> entry : itemsConfig.entrySet()) {
@@ -107,10 +109,10 @@ public class LootChestAction extends DungeonAction implements Tickable {
                 completeChestLogic(game, null);
             }
         } else {
-            if (chestBlock.getState() instanceof Chest chest) {
-                if (isInventoryEmpty(chest.getBlockInventory())) {
+            if (chestBlock.getState() instanceof Container container) {
+                if (isInventoryEmpty(container.getInventory())) {
                     boolean cursorHasItem = false;
-                    for (HumanEntity viewer : chest.getBlockInventory().getViewers()) {
+                    for (HumanEntity viewer : container.getInventory().getViewers()) {
                         if (viewer.getItemOnCursor() != null && viewer.getItemOnCursor().getType() != Material.AIR) {
                             cursorHasItem = true;
                             break;
@@ -118,7 +120,7 @@ public class LootChestAction extends DungeonAction implements Tickable {
                     }
 
                     if (!cursorHasItem) {
-                        completeChestLogic(game, chest.getBlockInventory());
+                        completeChestLogic(game, container.getInventory());
                     }
                 }
             }
@@ -322,7 +324,7 @@ public class LootChestAction extends DungeonAction implements Tickable {
     }
 
     private boolean isTargetChest(Block b) {
-        return b != null && chestBlock != null && b.getType() == Material.CHEST
+        return b != null && chestBlock != null && b.getType() == chestBlock.getType()
                 && b.getWorld().equals(chestBlock.getWorld())
                 && b.getX() == chestBlock.getX()
                 && b.getY() == chestBlock.getY()
