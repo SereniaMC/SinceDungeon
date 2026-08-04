@@ -69,12 +69,25 @@ public class PAPIHook {
     public static boolean checkCondition(Player p, String condition) {
         if (condition == null || !condition.contains(";")) return false;
 
-        String[] parts = condition.split(";");
-        if (parts.length < 3) return false;
+        String[] validOperators = {">=", "<=", "==", "!=", "equalsIgnoreCase", ">", "<"};
+        String operator = null;
+        int opIndex = -1;
+        int opLength = -1;
 
-        String leftRaw = parts[0];
-        String operator = parts[1];
-        String rightRaw = parts[2];
+        for (String op : validOperators) {
+            String searchStr = ";" + op + ";";
+            int idx = condition.lastIndexOf(searchStr);
+            if (idx != -1 && idx > opIndex) {
+                opIndex = idx;
+                opLength = searchStr.length();
+                operator = op;
+            }
+        }
+
+        if (operator == null) return false;
+
+        String leftRaw = condition.substring(0, opIndex);
+        String rightRaw = condition.substring(opIndex + opLength);
 
         String left = setPlaceholders(p, leftRaw).trim();
         String right = setPlaceholders(p, rightRaw).trim();
