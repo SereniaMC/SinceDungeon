@@ -342,6 +342,7 @@ public final class SinceDungeon extends JavaPlugin {
     public DungeonManager getDungeonManager() {
         return dungeonManager;
     }
+    public DungeonListener getDungeonListener() { return dungeonListener; }
 
     public EditorManager getEditorManager() {
         return editorManager;

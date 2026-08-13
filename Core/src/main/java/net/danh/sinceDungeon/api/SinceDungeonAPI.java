@@ -97,6 +97,10 @@ public class SinceDungeonAPI {
         return plugin.getDungeonManager().getGame(uuid);
     }
 
+    public void aetherDeathEvent(Player player) {
+        plugin.getDungeonListener().aetherDeathEvent(player);
+    }
+
     public Map<UUID, DungeonGame> getAllActiveGames() {
         return Map.copyOf(plugin.getDungeonManager().getActiveGames());
     }
