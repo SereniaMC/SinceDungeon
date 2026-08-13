@@ -1,4 +1,5 @@
-version = '1.6.4'
+// Keep same as I forgor to update number
+version = 'f1.6.6'
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")

@@ -420,6 +420,83 @@ public class DungeonListener implements Listener {
         }
     }
 
+    // PixelFen: test
+    public void aetherDeathEvent(Player p) {
+        DungeonGame game = plugin.getDungeonManager().getGame(p.getUniqueId());
+        if (game == null) return;
+
+        int deductLives = 1;
+        if (game.getTemplate() != null) {
+            deductLives = game.getTemplate().settings().livesDeductedPerDeath();
+        }
+
+        game.broadcastMessage("game.death", "<player>", p.getName());
+
+        boolean outOfLives = false;
+        if (deductLives > 0) {
+            plugin.getLivesManager().removeLives(p.getUniqueId(), deductLives);
+            LivesManager.PlayerLives livesData = plugin.getLivesManager().getLives(p.getUniqueId());
+            int current = livesData != null ? livesData.getCurrentLives() : 0;
+            int max = livesData != null ? livesData.getMaxLives() : 0;
+
+            String lossMsg = plugin.getLanguageManager().getString("lives.deducted")
+                    .replace("<amount>", String.valueOf(deductLives))
+                    .replace("<current>", String.valueOf(current))
+                    .replace("<max>", String.valueOf(max));
+            p.sendMessage(ColorUtils.parseWithPrefix(lossMsg));
+
+            if (current <= 0) outOfLives = true;
+        }
+
+        pendingDeathActions.put(p.getUniqueId(), resolvePendingDeathAction(game, outOfLives));
+        aetherDeathCommand(p);
+    }
+
+    // PixelFen: Different death checker for players to fit Aether
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void aetherDeathCommand(Player p) {
+        DungeonGame game = plugin.getDungeonManager().getGame(p.getUniqueId());
+        if (game != null && game.getWorld() != null) {
+            Location spawnLoc = game.getRespawnLocation();
+            p.setRespawnLocation(spawnLoc);
+        }
+
+        PendingDeathAction action = pendingDeathActions.remove(p.getUniqueId());
+        if (action == null) return;
+
+        SchedulerCompat.runGlobalLater(plugin, () -> {
+            if (!p.isOnline()) return;
+
+            DungeonGame checkGame = plugin.getDungeonManager().getGame(p.getUniqueId());
+            if (checkGame == null || !checkGame.isRunning()) return;
+
+            switch (action) {
+                case RESPAWN -> finishDungeonRespawn(p);
+                case SPECTATE -> {
+                    p.sendMessage(ColorUtils.parseWithPrefix(plugin.getLanguageManager().getString("game.death_spectate")));
+                    p.setGameMode(GameMode.SPECTATOR);
+                    checkGame.checkWipeout();
+                }
+                case OUT_OF_LIVES_SPECTATE -> {
+                    p.sendMessage(ColorUtils.parseWithPrefix(plugin.getLanguageManager().getString("lives.out_of_lives_spectate")));
+                    p.setGameMode(GameMode.SPECTATOR);
+                    checkGame.checkWipeout();
+                }
+                case FAIL -> checkGame.stop(true, DungeonEndEvent.EndReason.FAILED);
+                case OUT_OF_LIVES_FAIL -> {
+                    p.sendMessage(ColorUtils.parseWithPrefix(plugin.getLanguageManager().getString("lives.out_of_lives_kick")));
+                    checkGame.stop(true, DungeonEndEvent.EndReason.FAILED);
+                }
+                case OUT_OF_LIVES_KICK -> {
+                    p.sendMessage(ColorUtils.parseWithPrefix(plugin.getLanguageManager().getString("lives.out_of_lives_kick")));
+                    checkGame.handlePlayerDisconnect(p, false);
+                }
+            }
+        }, 1L);
+    }
+
+
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onAsyncChat(AsyncChatEvent e) {
         Player p = e.getPlayer();
