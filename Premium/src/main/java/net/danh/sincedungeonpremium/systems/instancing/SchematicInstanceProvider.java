@@ -190,8 +190,7 @@ public class SchematicInstanceProvider implements InstanceProvider {
         World existing = Bukkit.getWorld(worldName);
         if (existing != null) {
             sharedWorld = existing;
-            configureWorld(sharedWorld);
-            return CompletableFuture.completedFuture(sharedWorld);
+            return configureWorldAsync(sharedWorld);
         }
 
         if (SchedulerCompat.isFolia()) {
@@ -344,6 +343,22 @@ public class SchematicInstanceProvider implements InstanceProvider {
         world.setTime(plugin.getFileManager().getConfig().getInt("instancing.world-settings.time", 6000));
         world.setStorm(plugin.getFileManager().getConfig().getBoolean("instancing.world-settings.storm", false));
         world.setThundering(plugin.getFileManager().getConfig().getBoolean("instancing.world-settings.thundering", false));
+    }
+
+    private CompletableFuture<World> configureWorldAsync(World world) {
+        CompletableFuture<World> future = new CompletableFuture<>();
+        SchedulerCompat.TaskHandle handle = SchedulerCompat.runGlobal(plugin, () -> {
+            try {
+                configureWorld(world);
+                future.complete(world);
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        });
+        if (SchedulerCompat.isFolia() && handle.isCancelled() && !future.isDone()) {
+            future.completeExceptionally(new IllegalStateException("Folia global scheduler is unavailable."));
+        }
+        return future;
     }
 
     @Override
