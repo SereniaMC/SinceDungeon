@@ -10,6 +10,12 @@ dependencies:
     SinceDungeon:
       load: BEFORE
       required: true
+    WorldEdit:
+      load: BEFORE
+      required: false
+    FastAsyncWorldEdit:
+      load: BEFORE
+      required: false
     MythicMobs:
       load: BEFORE
       required: false
