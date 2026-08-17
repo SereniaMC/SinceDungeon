@@ -306,19 +306,21 @@ public class LootChestAction extends DungeonAction implements Tickable {
 
         if (chestInv != null) {
             for (HumanEntity viewer : new ArrayList<>(chestInv.getViewers())) {
-                viewer.closeInventory();
+                if (viewer instanceof Player p) {
+                    SchedulerCompat.runAtEntity(SinceDungeon.getPlugin(), p, p::closeInventory);
+                }
             }
         } else {
             for (Player p : game.getParticipants()) {
                 if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() instanceof VirtualLootHolder) {
-                    p.closeInventory();
+                    SchedulerCompat.runAtEntity(SinceDungeon.getPlugin(), p, p::closeInventory);
                 }
             }
         }
 
-        SchedulerCompat.runGlobalLater(SinceDungeon.getPlugin(), () -> {
+        Location soundLoc = game.resolveBlockLocation(chestLocation);
+        SchedulerCompat.runAtLocationLater(SinceDungeon.getPlugin(), soundLoc, () -> {
             if (chestBlock != null) chestBlock.setType(Material.AIR);
-            Location soundLoc = game.resolveBlockLocation(chestLocation);
             game.getWorld().playSound(soundLoc, Sound.ENTITY_ITEM_PICKUP, 1f, 1f);
         }, 1L);
     }

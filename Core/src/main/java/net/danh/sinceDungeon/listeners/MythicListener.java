@@ -49,7 +49,7 @@ public class MythicListener implements Listener {
 
             DungeonGame game = plugin.getDungeonManager().getGameByEntity(e.getEntity());
             if (game != null) {
-                SchedulerCompat.runGlobalLater(plugin, () -> {
+                SchedulerCompat.runAtEntityLater(plugin, e.getEntity(), () -> {
                     UUID parentId = MythicMobsHook.getParentUUID(e.getEntity().getUniqueId());
                     if (parentId != null) {
                         game.trackChildEntity(parentId, e.getEntity().getUniqueId(), e.getEntity().getLocation(), e.getMobType().getInternalName());

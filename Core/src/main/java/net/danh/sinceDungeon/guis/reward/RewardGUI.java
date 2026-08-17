@@ -359,7 +359,7 @@ public class RewardGUI implements Listener {
                             String msg = getMsg("claimed_all");
                             if (msg != null) p.sendMessage(ColorUtils.parseWithPrefix(msg));
                             try {
-                                SchedulerCompat.runAtEntity(plugin, p, () -> SchedulerCompat.runGlobalLater(plugin, p::closeInventory, 20L));
+                                SchedulerCompat.runAtEntityLater(plugin, p, p::closeInventory, 20L);
                             } catch (Exception ignored) {
                             }
                         }

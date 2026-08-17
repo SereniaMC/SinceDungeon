@@ -1209,7 +1209,7 @@ public class EditorMenuListener implements Listener {
                     }
                 }
 
-                SchedulerCompat.runGlobalLater(plugin, () -> new EditorGUI(plugin).openActionEditor(p, session), 1L);
+                SchedulerCompat.runAtEntityLater(plugin, p, () -> new EditorGUI(plugin).openActionEditor(p, session), 1L);
             }
         }
     }
