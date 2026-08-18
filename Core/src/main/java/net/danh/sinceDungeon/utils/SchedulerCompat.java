@@ -7,6 +7,7 @@ import org.bukkit.WorldCreator;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import net.danh.sinceDungeon.SinceDungeon;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -164,10 +165,6 @@ public final class SchedulerCompat {
 
     public static CompletableFuture<World> createWorld(Plugin plugin, WorldCreator creator) {
         CompletableFuture<World> future = new CompletableFuture<>();
-        if (FOLIA) {
-            future.completeExceptionally(new UnsupportedOperationException("Folia does not support Bukkit runtime world creation. Preload the world before plugin startup."));
-            return future;
-        }
         TaskHandle handle = runGlobal(plugin, () -> {
             try {
                 future.complete(creator.createWorld());
@@ -309,8 +306,11 @@ public final class SchedulerCompat {
                 return;
             }
             try {
-                task.getClass().getMethod("cancel").invoke(task);
-            } catch (ReflectiveOperationException ignored) {
+                Method cancelMethod = task.getClass().getMethod("cancel");
+                cancelMethod.setAccessible(true);
+                cancelMethod.invoke(task);
+            } catch (Exception e) {
+                SinceDungeon.getPlugin().getLogger().warning("Failed to cancel Folia task: " + e.getMessage());
             }
         }
 
@@ -320,9 +320,12 @@ public final class SchedulerCompat {
                 return bukkitTask.isCancelled();
             }
             try {
-                Object value = task.getClass().getMethod("isCancelled").invoke(task);
+                Method isCancelledMethod = task.getClass().getMethod("isCancelled");
+                isCancelledMethod.setAccessible(true);
+                Object value = isCancelledMethod.invoke(task);
                 return value instanceof Boolean cancelled && cancelled;
-            } catch (ReflectiveOperationException ignored) {
+            } catch (Exception e) {
+                SinceDungeon.getPlugin().getLogger().warning("Failed to check Folia task cancellation: " + e.getMessage());
                 return false;
             }
         }

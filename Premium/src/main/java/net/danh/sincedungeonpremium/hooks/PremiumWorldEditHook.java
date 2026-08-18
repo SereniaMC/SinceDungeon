@@ -38,23 +38,35 @@ public class PremiumWorldEditHook {
         ClipboardFormat format = ClipboardFormats.findByFile(file);
         if (format == null) return false;
 
-        // Try-with-resources ensures buffers are closed to prevent RAM leaks
         try (ClipboardReader reader = format.getReader(new FileInputStream(file))) {
             Clipboard clipboard = reader.read();
-
-            try (EditSession editSession = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(location.getWorld()))) {
-                Operation operation = new ClipboardHolder(clipboard)
-                        .createPaste(editSession)
-                        .to(BlockVector3.at(location.getBlockX(), location.getBlockY(), location.getBlockZ()))
-                        .ignoreAirBlocks(!pasteAir)
-                        .build();
-
-                Operations.complete(operation);
-                return true;
-            }
+            return pasteClipboard(clipboard, location, pasteAir);
         } catch (Exception e) {
             String logMsg = SinceDungeonPremium.getInstance().getFileManager().getMessageRaw("log.schematic_paste_fail");
             SinceDungeonPremium.getInstance().getLogger().severe(logMsg.replace("<file>", file.getName()) + " - " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static boolean pasteClipboard(Clipboard clipboard, Location location, boolean pasteAir) {
+        try (EditSession editSession = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(location.getWorld()))) {
+            BlockVector3 target = BlockVector3.at(
+                    location.getBlockX(),
+                    location.getBlockY(),
+                    location.getBlockZ()
+            );
+
+            Operation operation = new ClipboardHolder(clipboard)
+                    .createPaste(editSession)
+                    .to(target)
+                    .ignoreAirBlocks(!pasteAir)
+                    .build();
+
+            Operations.complete(operation);
+            return true;
+        } catch (Exception e) {
+            SinceDungeonPremium.getInstance().getLogger().severe("Failed to paste clipboard: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
