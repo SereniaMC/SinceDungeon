@@ -13,7 +13,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.Map;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -77,18 +82,44 @@ public class SchematicInstanceProvider implements InstanceProvider {
                 SchedulerCompat.runAsync(plugin, () -> {
                     File schemFile = resolveSchematicFile(templateName);
                     if (schemFile.exists()) {
-                        boolean pasteAir = plugin.getFileManager().getConfig().getBoolean("instancing.schematic.paste-air", true);
-                        boolean success = PremiumWorldEditHook.pasteSchematic(schemFile, region.pasteLocation(), pasteAir);
-                        if (!success) {
-                            String errMsg = plugin.getFileManager().getMessageRaw("log.schematic_paste_fail")
-                                    .replace("<file>", schemFile.getName())
-                                    .replace("<error>", plugin.getFileManager().getMessageRaw("log.worldedit_unknown_fail"));
-                            plugin.getLogger().warning(errMsg);
-                            SchedulerCompat.runGlobal(plugin, () -> {
-                                releaseSharedRegion(instanceId, world);
-                                future.completeExceptionally(new RuntimeException(errMsg));
+                        try {
+                            ClipboardFormat format = ClipboardFormats.findByFile(schemFile);
+                            if (format == null) return;
+                            
+                            Clipboard clipboard;
+                            try (ClipboardReader reader = format.getReader(new FileInputStream(schemFile))) {
+                                clipboard = reader.read();
+                            }
+
+                            world.getChunkAtAsync(region.origin()).thenAccept(chunk -> {
+                                SchedulerCompat.runAtLocation(plugin, region.origin(), () -> {
+                                    boolean pasteAir = plugin.getFileManager().getConfig().getBoolean("instancing.schematic.paste-air", true);
+                                    boolean success = PremiumWorldEditHook.pasteClipboard(clipboard, region.pasteLocation(), pasteAir);
+                                    if (!success) {
+                                        String errMsg = plugin.getFileManager().getMessageRaw("log.schematic_paste_fail")
+                                                .replace("<file>", schemFile.getName())
+                                                .replace("<error>", "Check FAWE/WE logs");
+                                        plugin.getLogger().warning(errMsg);
+                                        releaseSharedRegion(instanceId, world);
+                                        future.completeExceptionally(new RuntimeException(errMsg));
+                                    } else {
+                                        SchedulerCompat.runGlobal(plugin, () -> {
+                                            configureWorld(world);
+                                            String logMsg = plugin.getFileManager().getMessageRaw("log.schematic_region_allocated");
+                                            plugin.getLogger().info(logMsg
+                                                    .replace("<instance>", instanceId)
+                                                    .replace("<world>", world.getName())
+                                                    .replace("<x>", String.valueOf(region.origin().getBlockX()))
+                                                    .replace("<z>", String.valueOf(region.origin().getBlockZ())));
+                                            future.complete(world);
+                                        });
+                                    }
+                                });
                             });
-                            return;
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Failed to load schematic file for instancing: " + e.getMessage());
+                            releaseSharedRegion(instanceId, world);
+                            future.completeExceptionally(e);
                         }
                     } else {
                         String warnMsg = plugin.getFileManager().getMessageRaw("log.schematic_not_found").replace("<template>", templateName);
@@ -100,16 +131,7 @@ public class SchematicInstanceProvider implements InstanceProvider {
                         return;
                     }
 
-                    SchedulerCompat.runGlobal(plugin, () -> {
-                        configureWorld(world);
-                        String logMsg = plugin.getFileManager().getMessageRaw("log.schematic_region_allocated");
-                        plugin.getLogger().info(logMsg
-                                .replace("<instance>", instanceId)
-                                .replace("<world>", world.getName())
-                                .replace("<x>", String.valueOf(region.origin().getBlockX()))
-                                .replace("<z>", String.valueOf(region.origin().getBlockZ())));
-                        future.complete(world);
-                    });
+
                 });
             } catch (Exception e) {
                 future.completeExceptionally(e);
@@ -171,14 +193,6 @@ public class SchematicInstanceProvider implements InstanceProvider {
     }
 
     private void prepareSharedWorld() {
-        if (SchedulerCompat.isFolia()) {
-            try {
-                ensureSharedWorld();
-            } catch (IllegalStateException e) {
-                plugin.getLogger().warning(e.getMessage());
-            }
-            return;
-        }
         createSharedWorldAsync().exceptionally(throwable -> {
             plugin.getLogger().warning(throwable.getMessage());
             return null;
@@ -190,14 +204,7 @@ public class SchematicInstanceProvider implements InstanceProvider {
         World existing = Bukkit.getWorld(worldName);
         if (existing != null) {
             sharedWorld = existing;
-            configureWorld(sharedWorld);
-            return CompletableFuture.completedFuture(sharedWorld);
-        }
-
-        if (SchedulerCompat.isFolia()) {
-            IllegalStateException exception = missingSharedWorldException(worldName);
-            plugin.getLogger().severe(exception.getMessage());
-            return CompletableFuture.failedFuture(exception);
+            return configureWorldAsync(sharedWorld);
         }
 
         WorldCreator creator = new WorldCreator(worldName);
@@ -344,6 +351,22 @@ public class SchematicInstanceProvider implements InstanceProvider {
         world.setTime(plugin.getFileManager().getConfig().getInt("instancing.world-settings.time", 6000));
         world.setStorm(plugin.getFileManager().getConfig().getBoolean("instancing.world-settings.storm", false));
         world.setThundering(plugin.getFileManager().getConfig().getBoolean("instancing.world-settings.thundering", false));
+    }
+
+    private CompletableFuture<World> configureWorldAsync(World world) {
+        CompletableFuture<World> future = new CompletableFuture<>();
+        SchedulerCompat.TaskHandle handle = SchedulerCompat.runGlobal(plugin, () -> {
+            try {
+                configureWorld(world);
+                future.complete(world);
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        });
+        if (SchedulerCompat.isFolia() && handle.isCancelled() && !future.isDone()) {
+            future.completeExceptionally(new IllegalStateException("Folia global scheduler is unavailable."));
+        }
+        return future;
     }
 
     @Override

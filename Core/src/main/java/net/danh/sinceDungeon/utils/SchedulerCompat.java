@@ -7,7 +7,9 @@ import org.bukkit.WorldCreator;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import net.danh.sinceDungeon.SinceDungeon;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +83,7 @@ public final class SchedulerCompat {
             Object scheduled = run.invoke(scheduler, plugin, location, toConsumer(task));
             return TaskHandle.reflective(scheduled);
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia region scheduler, falling back to global scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia region scheduler, falling back to global scheduler: " + describeFailure(e));
             return runGlobal(plugin, task);
         }
     }
@@ -93,10 +95,10 @@ public final class SchedulerCompat {
         try {
             Object scheduler = Bukkit.getServer().getClass().getMethod("getRegionScheduler").invoke(Bukkit.getServer());
             Method run = findMethod(scheduler.getClass(), "runDelayed", 4);
-            Object scheduled = run.invoke(scheduler, plugin, location, toConsumer(task), delayTicks);
+            Object scheduled = run.invoke(scheduler, plugin, location, toConsumer(task), normalizeFoliaTicks(delayTicks));
             return TaskHandle.reflective(scheduled);
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia delayed region scheduler, falling back to global scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia delayed region scheduler, falling back to global scheduler: " + describeFailure(e));
             return runGlobalLater(plugin, task, delayTicks);
         }
     }
@@ -108,10 +110,10 @@ public final class SchedulerCompat {
         try {
             Object scheduler = Bukkit.getServer().getClass().getMethod("getRegionScheduler").invoke(Bukkit.getServer());
             Method run = findMethod(scheduler.getClass(), "runAtFixedRate", 5);
-            Object scheduled = run.invoke(scheduler, plugin, location, toConsumer(task), delayTicks, periodTicks);
+            Object scheduled = run.invoke(scheduler, plugin, location, toConsumer(task), normalizeFoliaTicks(delayTicks), normalizeFoliaTicks(periodTicks));
             return TaskHandle.reflective(scheduled);
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia repeating region scheduler, falling back to global scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia repeating region scheduler, falling back to global scheduler: " + describeFailure(e));
             return runGlobalTimer(plugin, task, delayTicks, periodTicks);
         }
     }
@@ -126,7 +128,7 @@ public final class SchedulerCompat {
             Object scheduled = run.invoke(scheduler, plugin, toConsumer(task), null);
             return TaskHandle.reflective(scheduled);
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia entity scheduler, falling back to global scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia entity scheduler, falling back to global scheduler: " + describeFailure(e));
             return runGlobal(plugin, task);
         }
     }
@@ -138,10 +140,10 @@ public final class SchedulerCompat {
         try {
             Object scheduler = entity.getClass().getMethod("getScheduler").invoke(entity);
             Method run = findMethod(scheduler.getClass(), "runDelayed", 4);
-            Object scheduled = run.invoke(scheduler, plugin, toConsumer(task), null, delayTicks);
+            Object scheduled = run.invoke(scheduler, plugin, toConsumer(task), null, normalizeFoliaTicks(delayTicks));
             return TaskHandle.reflective(scheduled);
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia delayed entity scheduler, falling back to global scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia delayed entity scheduler, falling back to global scheduler: " + describeFailure(e));
             return runGlobalLater(plugin, task, delayTicks);
         }
     }
@@ -153,20 +155,16 @@ public final class SchedulerCompat {
         try {
             Object scheduler = entity.getClass().getMethod("getScheduler").invoke(entity);
             Method run = findMethod(scheduler.getClass(), "runAtFixedRate", 5);
-            Object scheduled = run.invoke(scheduler, plugin, toConsumer(task), null, delayTicks, periodTicks);
+            Object scheduled = run.invoke(scheduler, plugin, toConsumer(task), null, normalizeFoliaTicks(delayTicks), normalizeFoliaTicks(periodTicks));
             return TaskHandle.reflective(scheduled);
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia entity timer, falling back to global scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia entity timer, falling back to global scheduler: " + describeFailure(e));
             return runGlobalTimer(plugin, task, delayTicks, periodTicks);
         }
     }
 
     public static CompletableFuture<World> createWorld(Plugin plugin, WorldCreator creator) {
         CompletableFuture<World> future = new CompletableFuture<>();
-        if (FOLIA) {
-            future.completeExceptionally(new UnsupportedOperationException("Folia does not support Bukkit runtime world creation. Preload the world before plugin startup."));
-            return future;
-        }
         TaskHandle handle = runGlobal(plugin, () -> {
             try {
                 future.complete(creator.createWorld());
@@ -210,11 +208,11 @@ public final class SchedulerCompat {
             args[0] = plugin;
             args[1] = toConsumer(task);
             for (int i = 0; i < ticksOrMillis.length; i++) {
-                args[i + 2] = ticksOrMillis[i];
+                args[i + 2] = normalizeFoliaTicks(ticksOrMillis[i]);
             }
             return TaskHandle.reflective(schedulerRun.invoke(scheduler, args));
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia scheduler: " + describeFailure(e));
             if (FOLIA) {
                 return TaskHandle.none();
             }
@@ -236,7 +234,7 @@ public final class SchedulerCompat {
             args[parameterCount - 1] = TimeUnit.MILLISECONDS;
             return TaskHandle.reflective(schedulerRun.invoke(scheduler, args));
         } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to use Folia async scheduler: " + e.getMessage());
+            plugin.getLogger().warning("Failed to use Folia async scheduler: " + describeFailure(e));
             if (FOLIA) {
                 return TaskHandle.none();
             }
@@ -270,6 +268,18 @@ public final class SchedulerCompat {
         return Math.max(1L, ticks * 50L);
     }
 
+    private static long normalizeFoliaTicks(long ticks) {
+        return Math.max(1L, ticks);
+    }
+
+    private static String describeFailure(ReflectiveOperationException exception) {
+        Throwable cause = exception instanceof InvocationTargetException invocation && invocation.getCause() != null
+                ? invocation.getCause()
+                : exception;
+        String message = cause.getMessage();
+        return message != null && !message.isBlank() ? message : cause.getClass().getSimpleName();
+    }
+
     public static final class TaskHandle {
         private final Object task;
 
@@ -296,8 +306,11 @@ public final class SchedulerCompat {
                 return;
             }
             try {
-                task.getClass().getMethod("cancel").invoke(task);
-            } catch (ReflectiveOperationException ignored) {
+                Method cancelMethod = task.getClass().getMethod("cancel");
+                cancelMethod.setAccessible(true);
+                cancelMethod.invoke(task);
+            } catch (Exception e) {
+                SinceDungeon.getPlugin().getLogger().warning("Failed to cancel Folia task: " + e.getMessage());
             }
         }
 
@@ -307,9 +320,12 @@ public final class SchedulerCompat {
                 return bukkitTask.isCancelled();
             }
             try {
-                Object value = task.getClass().getMethod("isCancelled").invoke(task);
+                Method isCancelledMethod = task.getClass().getMethod("isCancelled");
+                isCancelledMethod.setAccessible(true);
+                Object value = isCancelledMethod.invoke(task);
                 return value instanceof Boolean cancelled && cancelled;
-            } catch (ReflectiveOperationException ignored) {
+            } catch (Exception e) {
+                SinceDungeon.getPlugin().getLogger().warning("Failed to check Folia task cancellation: " + e.getMessage());
                 return false;
             }
         }

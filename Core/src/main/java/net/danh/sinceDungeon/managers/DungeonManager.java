@@ -97,8 +97,10 @@ public class DungeonManager {
     public void checkPendingCrossServerJoin(Player p) {
         if (pendingCrossServerGames.containsKey(p.getUniqueId())) {
             String templateId = pendingCrossServerGames.remove(p.getUniqueId());
-            SchedulerCompat.runGlobalLater(plugin, () -> {
-                joinDungeonLocal(p, templateId, p.hasPermission("SinceDungeon.admin"));
+            SchedulerCompat.runAtEntityLater(plugin, p, () -> {
+                if (p.isOnline()) {
+                    joinDungeonLocal(p, templateId, p.hasPermission("SinceDungeon.admin"));
+                }
             }, 40L);
         }
     }

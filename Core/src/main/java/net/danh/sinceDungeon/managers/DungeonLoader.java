@@ -6,10 +6,12 @@ import net.danh.sinceDungeon.models.DungeonTemplate;
 import net.danh.sinceDungeon.utils.FoliaDungeonValidator;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,7 +104,20 @@ public class DungeonLoader {
                 ConfigurationSection itemSec = poolSec.getConfigurationSection(key);
                 if (itemSec == null) continue;
                 String type = itemSec.getString("type");
-                String value = itemSec.getString("value");
+                Object valObj = itemSec.get("value");
+                String value = null;
+                if (valObj instanceof ItemStack is) {
+                    try {
+                        value = Base64.getEncoder().encodeToString(is.serializeAsBytes());
+                    } catch (Exception ignored) {}
+                } else if (itemSec.isConfigurationSection("value")) {
+                    try {
+                        ItemStack is = ItemStack.deserialize(itemSec.getConfigurationSection("value").getValues(false));
+                        value = Base64.getEncoder().encodeToString(is.serializeAsBytes());
+                    } catch (Exception ignored) {}
+                } else if (valObj != null) {
+                    value = valObj.toString();
+                }
                 if (type == null || value == null) continue;
                 rewards.add(new DungeonReward(type, value, itemSec.getDouble("chance", 100.0), itemSec.getString("name"), itemSec.getStringList("lore")));
             }

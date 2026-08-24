@@ -126,6 +126,13 @@ public class ItemBuilder {
     public static ItemStack parseDynamicItem(String data) {
         if (data == null || data.isEmpty()) return null;
         try {
+            if (!data.contains(":") && data.length() > 50) {
+                try {
+                    byte[] bytes = Base64.getDecoder().decode(data);
+                    return ItemStack.deserializeBytes(bytes);
+                } catch (Exception ignored) {
+                }
+            }
             String cleanData = data.replace(" ", "");
             String[] parts = cleanData.split(":", 2);
 

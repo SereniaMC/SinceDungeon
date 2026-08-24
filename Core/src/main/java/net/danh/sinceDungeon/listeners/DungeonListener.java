@@ -638,7 +638,7 @@ public class DungeonListener implements Listener {
         PendingDeathAction action = pendingDeathActions.remove(p.getUniqueId());
         if (action == null) return;
 
-        SchedulerCompat.runGlobalLater(plugin, () -> {
+        SchedulerCompat.runAtEntityLater(plugin, p, () -> {
             if (!p.isOnline()) return;
 
             DungeonGame checkGame = plugin.getDungeonManager().getGame(p.getUniqueId());

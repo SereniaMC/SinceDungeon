@@ -79,9 +79,7 @@ public class DungeonGame {
         this.participants.addAll(rawParticipants);
         this.template = template;
 
-        for (Player p : participants) {
-            savedStates.put(p.getUniqueId(), new PlayerState(p));
-        }
+        // States are saved asynchronously in startLobby to support Folia entity threads
 
         String prefix = plugin.getConfigFile().getString("dungeon.world-prefix", "SinceDungeon_");
         this.worldName = prefix + initiator.getName() + "_" + UUID.randomUUID().toString().substring(0, 8);
@@ -156,23 +154,28 @@ public class DungeonGame {
     private void executeActionCommandsForPlayer(List<String> commands, Player p, int stageIndex) {
         if (commands == null || commands.isEmpty() || p == null || !p.isOnline()) return;
 
-        for (String cmd : commands) {
-            if (cmd.startsWith("[") && cmd.contains("]")) {
-                int endIdx = cmd.indexOf("]");
-                String condition = cmd.substring(1, endIdx).trim();
-                cmd = cmd.substring(endIdx + 1).trim();
+        SchedulerCompat.runAtEntity(plugin, p, () -> {
+            if (!p.isOnline()) return;
+            for (String cmd : commands) {
+                if (cmd.startsWith("[") && cmd.contains("]")) {
+                    int endIdx = cmd.indexOf("]");
+                    String condition = cmd.substring(1, endIdx).trim();
+                    cmd = cmd.substring(endIdx + 1).trim();
 
-                if (!condition.isEmpty() && !PAPIHook.checkCondition(p, condition)) {
-                    continue;
+                    if (!condition.isEmpty() && !PAPIHook.checkCondition(p, condition)) {
+                        continue;
+                    }
                 }
+
+                String parsed = cmd.replace("<player>", p.getName()).replace("%player%", p.getName()).replace("{player}", p.getName()).replace("<dungeon>", template.id()).replace("%dungeon%", template.id()).replace("<stage>", String.valueOf(stageIndex + 1)).replace("%stage%", String.valueOf(stageIndex + 1));
+
+                parsed = PAPIHook.setPlaceholders(p, parsed);
+                if (parsed.startsWith("/")) parsed = parsed.substring(1);
+                
+                final String finalCmd = parsed;
+                SchedulerCompat.runGlobal(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCmd));
             }
-
-            String parsed = cmd.replace("<player>", p.getName()).replace("%player%", p.getName()).replace("{player}", p.getName()).replace("<dungeon>", template.id()).replace("%dungeon%", template.id()).replace("<stage>", String.valueOf(stageIndex + 1)).replace("%stage%", String.valueOf(stageIndex + 1));
-
-            parsed = PAPIHook.setPlaceholders(p, parsed);
-            if (parsed.startsWith("/")) parsed = parsed.substring(1);
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
-        }
+        });
     }
 
     public void startLobby() {
@@ -185,6 +188,12 @@ public class DungeonGame {
 
         broadcastTitle("game.title.loading_main", "game.title.loading_sub", fadeIn, stay, fadeOut);
         broadcastMessage("lobby.preparing");
+
+        for (Player p : participants) {
+            SchedulerCompat.runAtEntity(plugin, p, () -> {
+                if (p.isOnline()) savedStates.put(p.getUniqueId(), new PlayerState(p));
+            });
+        }
 
         InstanceProvider provider = plugin.getInstanceManager().getProvider();
         this.instanceProvider = provider;
@@ -282,16 +291,18 @@ public class DungeonGame {
                 failedToEnter.add(p);
                 continue;
             }
-            if (p.isInsideVehicle()) p.leaveVehicle();
-            p.closeInventory();
-            p.setVelocity(new Vector(0, 0, 0));
+            SchedulerCompat.runAtEntity(plugin, p, () -> {
+                if (!p.isOnline()) return;
+                
+                if (p.isInsideVehicle()) p.leaveVehicle();
+                p.closeInventory();
+                p.setVelocity(new Vector(0, 0, 0));
 
-            if (!saveStats) {
-                MultiverseInventoriesHook.addWorldToGroupsOf(p.getWorld().getName(), spawnLoc.getWorld().getName());
-            }
+                if (!saveStats) {
+                    MultiverseInventoriesHook.addWorldToGroupsOf(p.getWorld().getName(), spawnLoc.getWorld().getName());
+                }
 
-
-            p.teleportAsync(spawnLoc).thenAccept(success -> {
+                p.teleportAsync(spawnLoc).thenAccept(success -> {
                 if (success && p.isOnline()) {
                     p.setNoDamageTicks(60);
 
@@ -328,6 +339,7 @@ public class DungeonGame {
 
                     p.setFallDistance(0);
                 }
+            });
             });
         }
 
@@ -818,33 +830,35 @@ public class DungeonGame {
             for (Player p : participants) {
                 if (!p.isOnline() || p.isDead()) continue;
 
-                plugin.getRewardManager().getRewardSystem().forceClaimPending(p);
+                SchedulerCompat.runAtEntity(plugin, p, () -> {
+                    plugin.getRewardManager().getRewardSystem().forceClaimPending(p);
 
-                if (p.isInsideVehicle()) p.leaveVehicle();
-                p.closeInventory();
-                p.setVelocity(new Vector(0, 0, 0));
+                    if (p.isInsideVehicle()) p.leaveVehicle();
+                    p.closeInventory();
+                    p.setVelocity(new Vector(0, 0, 0));
 
-                plugin.getDungeonManager().addTransitioning(p.getUniqueId());
+                    plugin.getDungeonManager().addTransitioning(p.getUniqueId());
 
-                if (plugin.getConfigFile().getBoolean("cross-server.enabled", false)) {
-                    String returnServer = plugin.getConfigFile().getString("cross-server.return-server", "lobby");
-                    restorePlayerState(p);
-                    BungeeUtils.sendPlayerToServer(p, returnServer);
-                } else {
-                    PlayerState state = savedStates.get(p.getUniqueId());
-                    Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
+                    if (plugin.getConfigFile().getBoolean("cross-server.enabled", false)) {
+                        String returnServer = plugin.getConfigFile().getString("cross-server.return-server", "lobby");
+                        restorePlayerState(p);
+                        BungeeUtils.sendPlayerToServer(p, returnServer);
+                    } else {
+                        PlayerState state = savedStates.get(p.getUniqueId());
+                        Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
 
-                    p.teleportAsync(targetLoc).thenAccept(success -> {
-                        if (success && p.isOnline()) {
-                            SchedulerCompat.runAtEntityLater(plugin, p, () -> restorePlayerState(p), 20L);
-                        } else if (p.isOnline()) {
-                            SchedulerCompat.runAtEntity(plugin, p, () -> {
-                                p.teleportAsync(targetLoc);
+                        p.teleportAsync(targetLoc).thenAccept(success -> {
+                            if (success && p.isOnline()) {
                                 SchedulerCompat.runAtEntityLater(plugin, p, () -> restorePlayerState(p), 20L);
-                            });
-                        }
-                    });
-                }
+                            } else if (p.isOnline()) {
+                                SchedulerCompat.runAtEntity(plugin, p, () -> {
+                                    p.teleportAsync(targetLoc);
+                                    SchedulerCompat.runAtEntityLater(plugin, p, () -> restorePlayerState(p), 20L);
+                                });
+                            }
+                        });
+                    }
+                });
             }
 
             SchedulerCompat.runGlobalLater(plugin, () -> stop(false, DungeonEndEvent.EndReason.CLEARED), 40L);
@@ -857,20 +871,22 @@ public class DungeonGame {
         plugin.getRewardManager().getRewardSystem().forceClaimPending(p);
 
         if (!isQuitting) {
-            if (p.isDead()) {
-                PlayerUtils.respawn(p);
-            }
-            if (p.isInsideVehicle()) p.leaveVehicle();
-            p.closeInventory();
-            p.setVelocity(new Vector(0, 0, 0));
+            SchedulerCompat.runAtEntity(plugin, p, () -> {
+                if (p.isDead()) {
+                    PlayerUtils.respawn(p);
+                }
+                if (p.isInsideVehicle()) p.leaveVehicle();
+                p.closeInventory();
+                p.setVelocity(new Vector(0, 0, 0));
 
-            PlayerState state = savedStates.get(p.getUniqueId());
-            Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
+                PlayerState state = savedStates.get(p.getUniqueId());
+                Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
 
-            if (wasInDungeon) {
-                p.teleportAsync(targetLoc);
-            }
-            SchedulerCompat.runGlobalLater(plugin, () -> restorePlayerState(p), 20L);
+                if (wasInDungeon) {
+                    p.teleportAsync(targetLoc);
+                }
+                SchedulerCompat.runGlobalLater(plugin, () -> restorePlayerState(p), 20L);
+            });
         } else {
             restorePlayerState(p);
         }
@@ -935,32 +951,34 @@ public class DungeonGame {
 
                     if (dungeonWorld != null && p.getWorld().equals(dungeonWorld)) {
                         if (teleport) {
-                            PlayerUtils.respawn(p);
+                            SchedulerCompat.runAtEntity(plugin, p, () -> {
+                                PlayerUtils.respawn(p);
 
-                            if (p.isInsideVehicle()) p.leaveVehicle();
-                            p.closeInventory();
-                            p.setVelocity(new Vector(0, 0, 0));
-                            PlayerState state = savedStates.get(p.getUniqueId());
-                            Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
+                                if (p.isInsideVehicle()) p.leaveVehicle();
+                                p.closeInventory();
+                                p.setVelocity(new Vector(0, 0, 0));
+                                PlayerState state = savedStates.get(p.getUniqueId());
+                                Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
 
-                            plugin.getDungeonManager().addTransitioning(p.getUniqueId());
+                                plugin.getDungeonManager().addTransitioning(p.getUniqueId());
 
-                            if (plugin.getConfigFile().getBoolean("cross-server.enabled", false)) {
-                                String returnServer = plugin.getConfigFile().getString("cross-server.return-server", "lobby");
-                                restorePlayerState(p);
-                                BungeeUtils.sendPlayerToServer(p, returnServer);
-                            } else {
-                                p.teleportAsync(targetLoc).thenAccept(success -> {
-                                    if (success) {
-                                        SchedulerCompat.runGlobalLater(plugin, () -> restorePlayerState(p), 20L);
-                                    } else {
-                                        SchedulerCompat.runAtEntity(plugin, p, () -> {
-                                            p.teleportAsync(targetLoc);
+                                if (plugin.getConfigFile().getBoolean("cross-server.enabled", false)) {
+                                    String returnServer = plugin.getConfigFile().getString("cross-server.return-server", "lobby");
+                                    restorePlayerState(p);
+                                    BungeeUtils.sendPlayerToServer(p, returnServer);
+                                } else {
+                                    p.teleportAsync(targetLoc).thenAccept(success -> {
+                                        if (success) {
                                             SchedulerCompat.runGlobalLater(plugin, () -> restorePlayerState(p), 20L);
-                                        });
-                                    }
-                                });
-                            }
+                                        } else {
+                                            SchedulerCompat.runAtEntity(plugin, p, () -> {
+                                                p.teleportAsync(targetLoc);
+                                                SchedulerCompat.runGlobalLater(plugin, () -> restorePlayerState(p), 20L);
+                                            });
+                                        }
+                                    });
+                                }
+                            });
                         } else {
                             restorePlayerState(p);
                         }
@@ -1047,19 +1065,21 @@ public class DungeonGame {
                 for (Player p : participants) {
                     plugin.getDungeonManager().removeGame(p.getUniqueId());
                     if (p.isOnline() && dungeonWorld != null && p.getWorld().equals(dungeonWorld)) {
-                        PlayerUtils.respawn(p);
+                        SchedulerCompat.runAtEntity(plugin, p, () -> {
+                            PlayerUtils.respawn(p);
 
-                        if (p.isInsideVehicle()) p.leaveVehicle();
-                        p.closeInventory();
-                        p.setVelocity(new Vector(0, 0, 0));
+                            if (p.isInsideVehicle()) p.leaveVehicle();
+                            p.closeInventory();
+                            p.setVelocity(new Vector(0, 0, 0));
 
-                        PlayerState state = savedStates.get(p.getUniqueId());
-                        Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
+                            PlayerState state = savedStates.get(p.getUniqueId());
+                            Location targetLoc = (state != null && state.location.getWorld() != null) ? state.location : Bukkit.getWorlds().get(0).getSpawnLocation();
 
-                        plugin.getDungeonManager().addTransitioning(p.getUniqueId());
-                        p.teleportAsync(targetLoc);
-                        restorePlayerState(p);
-                        p.sendActionBar(ColorUtils.parse(" "));
+                            plugin.getDungeonManager().addTransitioning(p.getUniqueId());
+                            p.teleportAsync(targetLoc);
+                            restorePlayerState(p);
+                            p.sendActionBar(ColorUtils.parse(" "));
+                        });
                     } else if (p.isOnline()) {
                         restorePlayerState(p);
                     }

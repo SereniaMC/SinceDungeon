@@ -41,10 +41,12 @@ public class RewardSessionManager {
                 if (now - entry.getValue().getCreationTime() > expireMillis) {
                     Player p = Bukkit.getPlayer(entry.getKey());
                     if (p != null && p.isOnline()) {
-                        gui.forceClaimAll(p, entry.getValue());
-                        p.sendMessage(ColorUtils.parseWithPrefix(
-                                plugin.getLanguageManager().getString("reward.messages.auto_claimed_expired", "<yellow>Your rewards were auto-claimed due to timeout.")
-                        ));
+                        SchedulerCompat.runAtEntity(plugin, p, () -> {
+                            gui.forceClaimAll(p, entry.getValue());
+                            p.sendMessage(ColorUtils.parseWithPrefix(
+                                    plugin.getLanguageManager().getString("reward.messages.auto_claimed_expired", "<yellow>Your rewards were auto-claimed due to timeout.")
+                            ));
+                        });
                     }
                     sessions.remove(entry.getKey());
                 }
